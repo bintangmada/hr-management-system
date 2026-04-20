@@ -43,7 +43,19 @@
                             <span th:unless="${loc.polygonJson != '[]'}" class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-400 rounded-full">Kosong</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-3">
-                            <button th:onclick="'openEditModal(' + ${#strings.escapeJavaScript(loc.id)} + ', ' + ${#strings.escapeJavaScript(loc.name)} + ', ' + ${#strings.escapeJavaScript(loc.polygonJson)} + ', ' + ${loc.radius} + ')'" 
+                            <button th:data-id="${loc.id}"
+                                    th:data-name="${loc.name}"
+                                    th:data-polygon="${loc.polygonJson}"
+                                    th:data-radius="${loc.radius}"
+                                    th:data-desc="${loc.description}"
+                                    onclick="detailLocation(this)"
+                                    class="text-gray-600 hover:text-gray-900 font-medium">Detail</button>
+                            <button th:data-id="${loc.id}"
+                                    th:data-name="${loc.name}"
+                                    th:data-polygon="${loc.polygonJson}"
+                                    th:data-radius="${loc.radius}"
+                                    th:data-desc="${loc.description}"
+                                    onclick="editLocation(this)"
                                     class="text-blue-600 hover:text-blue-900 font-medium">Edit</button>
                             <form th:action="@{/settings/attendance-locations/delete/{id}(id=${loc.id})}" method="post" class="inline">
                                 <button type="submit" class="text-red-600 hover:text-red-900 font-medium" onclick="return confirm('Hapus lokasi ini?')">Hapus</button>
@@ -81,16 +93,20 @@
                             </div>
                         </div>
 
-                        <div class="lg:col-span-2">
+                        <div class="lg:col-span-2 relative">
                             <label class="block text-xs font-semibold text-gray-500 mb-2 ml-1">Gambar Area Polygon pada Peta</label>
                             <div id="map" class="h-96 rounded-2xl border border-gray-200 z-0"></div>
+                            <button type="button" onclick="findMyLocation()" 
+                                    class="absolute top-10 right-4 z-[400] bg-white p-3 rounded-xl shadow-lg border border-gray-100 text-blue-600 hover:bg-blue-50 transition-all">
+                                <i class="fas fa-location-arrow mr-2"></i> Cari Lokasi Saya
+                            </button>
                             <p class="mt-2 text-[10px] text-gray-400 italic">Gunakan toolbar di kiri peta untuk menggambar area.</p>
                         </div>
                     </form>
                 </div>
                 <div class="p-6 border-t border-gray-100 flex justify-end space-x-4">
-                    <button type="button" onclick="closeModal()" class="px-6 py-2 text-gray-500 font-medium">Batal</button>
-                    <button type="button" onclick="document.getElementById('locForm').submit()" class="bg-blue-600 text-white px-10 py-3 rounded-2xl font-bold shadow-lg">Simpan Lokasi</button>
+                    <button type="button" onclick="closeModal()" class="px-6 py-2 text-gray-500 font-medium">Tutup</button>
+                    <button type="button" id="btnSave" onclick="document.getElementById('locForm').submit()" class="bg-blue-600 text-white px-10 py-3 rounded-2xl font-bold shadow-lg">Simpan Lokasi</button>
                 </div>
             </div>
         </div>
@@ -103,7 +119,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <script th:inline="javascript">
-        var map, drawnItems, drawControl;
+        var map, drawnItems, drawControl, userMarker;
 
         function initMap() {
             if (map) return;
@@ -126,6 +142,33 @@
             });
             map.on(L.Draw.Event.EDITED, updatePolygonInput);
             map.on(L.Draw.Event.DELETED, updatePolygonInput);
+        }
+
+        function findMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    var latlng = [lat, lng];
+                    
+                    if (!userMarker) {
+                        userMarker = L.marker(latlng, {
+                            icon: L.divIcon({
+                                html: '<i class="fas fa-crosshairs text-red-600 text-2xl"></i>',
+                                iconSize: [20, 20],
+                                className: 'custom-div-icon'
+                            })
+                        }).addTo(map);
+                    } else {
+                        userMarker.setLatLng(latlng);
+                    }
+                    map.setView(latlng, 18);
+                }, function() {
+                    alert("Gagal mengakses lokasi. Pastikan izin lokasi aktif.");
+                }, {enableHighAccuracy: true});
+            } else {
+                alert("Browser tidak mendukung geolokasi.");
+            }
         }
 
         function updatePolygonInput() {
@@ -152,17 +195,46 @@
             }, 100);
         }
 
-        function openEditModal(id, name, polygonJson, radius) {
+        function detailLocation(btn) {
+            editLocation(btn);
+            document.getElementById('modalTitle').innerText = "Detail Lokasi";
+            document.getElementById('btnSave').classList.add('hidden');
+            // Disable all fields
+            document.querySelectorAll('#locForm input, #locForm textarea').forEach(el => el.disabled = true);
+            // Hide drawing toolbar
+            if (drawControl) map.removeControl(drawControl);
+        }
+
+        function editLocation(btn) {
+            var id = btn.getAttribute('data-id');
+            var name = btn.getAttribute('data-name');
+            var polygonJson = btn.getAttribute('data-polygon');
+            var radius = btn.getAttribute('data-radius');
+            var desc = btn.getAttribute('data-desc');
+            openEditModal(id, name, polygonJson, radius, desc);
+        }
+
+        function openEditModal(id, name, polygonJson, radius, desc) {
             document.getElementById('modalTitle').innerText = "Edit Lokasi";
+            document.getElementById('btnSave').classList.remove('hidden');
+            document.querySelectorAll('#locForm input, #locForm textarea').forEach(el => el.disabled = false);
+            
             document.getElementById('locId').value = id;
             document.getElementById('locName').value = name;
             document.getElementById('locRadius').value = radius;
+            document.getElementById('locDesc').value = desc || "";
             document.getElementById('polygonInput').value = polygonJson;
             document.getElementById('modalLoc').classList.remove('hidden');
             
             setTimeout(function() {
                 initMap();
                 drawnItems.clearLayers();
+                
+                // Add drawing control back if missing
+                if (map && !map.hasLayer(drawControl)) {
+                    try { map.addControl(drawControl); } catch(e) {}
+                }
+
                 if (polygonJson && polygonJson !== '[]') {
                     var coords = JSON.parse(polygonJson);
                     var poly = L.polygon(coords).addTo(drawnItems);

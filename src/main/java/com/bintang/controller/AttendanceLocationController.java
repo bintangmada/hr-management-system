@@ -30,9 +30,10 @@ public class AttendanceLocationController {
         boolean isNew = (location.getId() == null);
         locationRepository.save(location);
         
-        String action = isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION";
-        auditService.log(action, "Admin", "AttendanceLocation", location.getId(), 
-                "Menambahkan/Mengubah lokasi absensi: " + location.getName());
+        String actionType = isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION";
+        String actionMsg = isNew ? "Menambahkan" : "Mengubah";
+        auditService.log(actionType, "Admin", "AttendanceLocation", location.getId(), 
+                actionMsg + " lokasi absensi: " + location.getName());
         
         return "redirect:/settings/attendance-locations?success";
     }

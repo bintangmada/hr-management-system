@@ -18,13 +18,15 @@ public class InitialDataSeeder {
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private SettingRepository settingRepository;
 
+    @Autowired private AttendanceLocationRepository attendanceLocationRepository;
+
     @PostConstruct
     public void seed() {
         if (regionRepository.count() == 0) {
             // Seed Regions
             Region asia = regionRepository.save(new Region(null, "Asia"));
             
-            // Seed Locations
+            // Seed Locations (Organizational)
             Location jakarta = locationRepository.save(new Location(null, "Jl. Sudirman No. 1", "12190", "Jakarta", "DKI Jakarta", "ID"));
             
             // Seed Jobs
@@ -43,12 +45,38 @@ public class InitialDataSeeder {
             bintang.setHireDate(LocalDate.now().minusYears(1));
             bintang.setJobId(manager.getId());
             bintang.setDepartmentId(hcm.getId());
+            bintang.setPassword("admin123");
+            bintang.setRole("ADMIN");
             employeeRepository.save(bintang);
-            
-            // Seed Settings
-            if (settingRepository.findBySettingKey("OFFICE_RADIUS").isEmpty()) {
-                settingRepository.save(new Setting(null, "OFFICE_RADIUS", "100", "Radius absensi dalam meter"));
-            }
+        } else {
+            // Jika data sudah ada, pastikan user demo punya password dan role
+            employeeRepository.findByNik("2026001").ifPresent(emp -> {
+                boolean changed = false;
+                if (emp.getPassword() == null || emp.getPassword().isEmpty()) {
+                    emp.setPassword("admin123");
+                    changed = true;
+                }
+                if (emp.getRole() == null || emp.getRole().isEmpty()) {
+                    emp.setRole("ADMIN");
+                    changed = true;
+                }
+                if (changed) employeeRepository.save(emp);
+            });
+        }
+
+        // Seed Attendance Location (Geofencing)
+        if (attendanceLocationRepository.count() == 0) {
+            AttendanceLocation monas = new AttendanceLocation();
+            monas.setName("Kantor Pusat (Monas Area)");
+            monas.setPolygonJson("[[-6.174,106.8256],[-6.174,106.8276],[-6.176,106.8276],[-6.176,106.8256]]");
+            monas.setRadius(200);
+            monas.setDescription("Area testing geofencing di pusat Jakarta.");
+            attendanceLocationRepository.save(monas);
+        }
+
+        // Seed Settings
+        if (settingRepository.findBySettingKey("OFFICE_RADIUS").isEmpty()) {
+            settingRepository.save(new Setting(null, "OFFICE_RADIUS", "100", "Radius absensi dalam meter"));
         }
     }
 }

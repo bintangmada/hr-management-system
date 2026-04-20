@@ -38,4 +38,7 @@ public class Employee {
     private Double commissionPct;
     private Long managerId; // Manual relationship to self
     private Long departmentId; // Manual relationship
+    
+    private String password;
+    private String role; // ADMIN or EMPLOYEE
 }

@@ -1,6 +1,8 @@
 package com.bintang.service;
 
 import com.bintang.entity.Attendance;
+import com.bintang.entity.AttendanceLocation;
+import com.bintang.repository.AttendanceLocationRepository;
 import com.bintang.repository.AttendanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,12 @@ public class AttendanceService {
     
     @Autowired
     private AttendanceLocationRepository locationRepository;
+
+    @Autowired
+    private com.bintang.service.AuditService auditService;
+
+    @Autowired
+    private com.bintang.repository.EmployeeRepository employeeRepository;
 
     public boolean isPointInPolygon(double lat, double lng, String polygonJson) {
         if (polygonJson == null || polygonJson.equals("[]")) return false;
@@ -36,6 +44,12 @@ public class AttendanceService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public Attendance getTodayAttendance(Long employeeId) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+        return attendanceRepository.findTodayAttendance(employeeId, startOfDay, endOfDay).orElse(null);
     }
 
     public void checkIn(Long employeeId, double lat, double lng) {
@@ -60,5 +74,27 @@ public class AttendanceService {
         attendance.setStatus(isWithinGeo ? "HADIR (" + locationName + ")" : "DILUAR_AREA");
         
         attendanceRepository.save(attendance);
+
+        // Add Audit Log
+        employeeRepository.findById(employeeId).ifPresent(emp -> {
+            auditService.log("CHECK_IN", emp.getFirstName(), "Attendance", attendance.getId(), 
+                "Check-in: " + emp.getFirstName() + " (" + attendance.getStatus() + ")");
+        });
+    }
+
+    public void checkOut(Long attendanceId, double lat, double lng) {
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow();
+        attendance.setCheckOutTime(LocalDateTime.now());
+        attendanceRepository.save(attendance);
+
+        // Add Audit Log
+        employeeRepository.findById(attendance.getEmployeeId()).ifPresent(emp -> {
+            auditService.log("CHECK_OUT", emp.getFirstName(), "Attendance", attendance.getId(), 
+                "Check-out: " + emp.getFirstName());
+        });
+    }
+
+    public List<Attendance> getAttendanceHistory(Long employeeId) {
+        return attendanceRepository.findByEmployeeIdOrderByCheckInTimeDesc(employeeId);
     }
 }

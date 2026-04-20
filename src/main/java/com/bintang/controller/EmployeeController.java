@@ -28,8 +28,11 @@ public class EmployeeController {
 
     @PostMapping
     public String saveEmployee(@ModelAttribute Employee employee) {
+        boolean isNew = (employee.getId() == null);
         employeeRepository.save(employee);
-        auditService.log("CREATE_EMPLOYEE", "Admin", "Employee", employee.getId(), "Menambahkan/Mengubah Karyawan: " + employee.getFirstName() + " " + employee.getLastName());
+        String actionMsg = isNew ? "Menambahkan" : "Mengubah";
+        auditService.log(isNew ? "CREATE_EMPLOYEE" : "UPDATE_EMPLOYEE", "Admin", "Employee", employee.getId(), 
+                actionMsg + " Karyawan: " + employee.getFirstName() + " " + employee.getLastName());
         return "redirect:/employees?success";
     }
 
