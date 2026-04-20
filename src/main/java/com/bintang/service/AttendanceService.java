@@ -16,9 +16,10 @@ public class AttendanceService {
     private AttendanceRepository attendanceRepository;
     
     @Autowired
-    private SettingService settingService;
+    private AttendanceLocationRepository locationRepository;
 
     public boolean isPointInPolygon(double lat, double lng, String polygonJson) {
+        if (polygonJson == null || polygonJson.equals("[]")) return false;
         try {
             ObjectMapper mapper = new ObjectMapper();
             double[][] poly = mapper.readValue(polygonJson, double[][].class);
@@ -38,8 +39,17 @@ public class AttendanceService {
     }
 
     public void checkIn(Long employeeId, double lat, double lng) {
-        String polygonJson = settingService.getSettingValue("OFFICE_POLYGON", "[]");
-        boolean isWithinGeo = isPointInPolygon(lat, lng, polygonJson);
+        List<AttendanceLocation> locations = locationRepository.findAll();
+        boolean isWithinGeo = false;
+        String locationName = "DILUAR_AREA";
+        
+        for (AttendanceLocation loc : locations) {
+            if (isPointInPolygon(lat, lng, loc.getPolygonJson())) {
+                isWithinGeo = true;
+                locationName = loc.getName();
+                break;
+            }
+        }
         
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
@@ -47,7 +57,7 @@ public class AttendanceService {
         attendance.setLatitude(lat);
         attendance.setLongitude(lng);
         attendance.setIsWithinGeo(isWithinGeo);
-        attendance.setStatus(isWithinGeo ? "HADIR" : "DILUAR_AREA");
+        attendance.setStatus(isWithinGeo ? "HADIR (" + locationName + ")" : "DILUAR_AREA");
         
         attendanceRepository.save(attendance);
     }
