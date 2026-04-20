@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Bintang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(229, 231, 235, 1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 w-64 glass-sidebar hidden lg:block z-50">
+        <div class="px-6 py-8">
+            <h1 class="text-2xl font-bold text-blue-600 flex items-center">
+                <i class="fas fa-users-cog mr-2"></i> HRMS
+            </h1>
+        </div>
+        
+        <nav class="px-4 space-y-1">
+            <a th:href="@{/dashboard}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-chart-line w-6"></i> Dashboard
+            </a>
+            <a th:href="@{/attendance}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-id-badge w-6"></i> Absensi (Mobile)
+            </a>
+            <a th:href="@{/employees}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-user-friends w-6"></i> Karyawan
+            </a>
+            <a th:href="@{/payroll}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-money-check-alt w-6"></i> Payroll
+            </a>
+            <a th:href="@{/performance}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-star w-6"></i> Performa
+            </a>
+            
+            <div class="pt-4 pb-2">
+                <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Pengaturan</p>
+            </div>
+            
+            <a th:href="@{/settings/master-data}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-database w-6"></i> Master Data
+            </a>
+            <a th:href="@{/settings/attendance}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-map-marked-alt w-6"></i> Lokasi Absen
+            </a>
+            <a th:href="@{/admin/audit-logs}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-history w-6"></i> Audit Logs
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Bar -->
+        <header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+            <button class="lg:hidden text-gray-500 hover:text-gray-700">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="relative w-96 hidden md:block">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Cari data...">
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-500 hover:text-gray-700 relative">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                    B
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="p-8">
+            <div th:replace="~{__${content}__ :: area_konten}">
+                <!-- Dynamic Content Here -->
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
