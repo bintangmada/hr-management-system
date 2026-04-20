@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/settings")
@@ -31,13 +32,16 @@ public class SettingController {
     @PostMapping("/attendance")
     public String saveAttendanceSettings(
             @RequestParam String officePolygon,
-            @RequestParam String officeRadius) {
+            @RequestParam String officeRadius,
+            jakarta.servlet.http.HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
         
         settingService.updateSetting("OFFICE_POLYGON", officePolygon, "Area polygon lokasi kantor (GeoJSON/Points)");
         settingService.updateSetting("OFFICE_RADIUS", officeRadius, "Radius kehadiran dalam meter");
         
-        auditService.log("UPDATE_SETTING", "Admin", "Setting", null, "Mengubah pengaturan geofencing");
+        auditService.logWithContext(request, "UPDATE_SETTING", "Setting", null, "Mengubah pengaturan geofencing");
+        redirectAttributes.addFlashAttribute("successMessage", "Pengaturan kehadiran berhasil diperbarui!");
         
-        return "redirect:/settings/attendance?success";
+        return "redirect:/settings/attendance";
     }
 }

@@ -18,13 +18,17 @@ public class InitialDataSeeder {
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private SettingRepository settingRepository;
 
+    @Autowired private AttendanceLocationRepository attendanceLocationRepository;
+    @Autowired private AppMenuRepository menuRepository;
+
     @PostConstruct
     public void seed() {
+        seedMenus();
         if (regionRepository.count() == 0) {
             // Seed Regions
             Region asia = regionRepository.save(new Region(null, "Asia"));
             
-            // Seed Locations
+            // Seed Locations (Organizational)
             Location jakarta = locationRepository.save(new Location(null, "Jl. Sudirman No. 1", "12190", "Jakarta", "DKI Jakarta", "ID"));
             
             // Seed Jobs
@@ -43,12 +47,78 @@ public class InitialDataSeeder {
             bintang.setHireDate(LocalDate.now().minusYears(1));
             bintang.setJobId(manager.getId());
             bintang.setDepartmentId(hcm.getId());
+            bintang.setPassword("admin123");
+            bintang.setRole("ADMIN");
             employeeRepository.save(bintang);
+        } else {
+            // Jika data sudah ada, pastikan user demo punya password dan role
+            employeeRepository.findByNik("2026001").ifPresent(emp -> {
+                boolean changed = false;
+                if (emp.getPassword() == null || emp.getPassword().isEmpty()) {
+                    emp.setPassword("admin123");
+                    changed = true;
+                }
+                if (emp.getRole() == null || emp.getRole().isEmpty()) {
+                    emp.setRole("ADMIN");
+                    changed = true;
+                }
+                if (changed) employeeRepository.save(emp);
+            });
+        }
+
+        // Seed Attendance Location (Geofencing)
+        if (attendanceLocationRepository.count() == 0) {
+            AttendanceLocation monas = new AttendanceLocation();
+            monas.setName("Kantor Pusat (Monas Area)");
+            monas.setPolygonJson("[[-6.174,106.8256],[-6.174,106.8276],[-6.176,106.8276],[-6.176,106.8256]]");
+            monas.setRadius(200);
+            monas.setDescription("Area testing geofencing di pusat Jakarta.");
+            attendanceLocationRepository.save(monas);
+        }
+
+        // Seed Settings
+        if (settingRepository.findBySettingKey("OFFICE_RADIUS").isEmpty()) {
+            settingRepository.save(new Setting(null, "OFFICE_RADIUS", "100", "Radius absensi dalam meter"));
+        }
+    }
+
+    private void seedMenus() {
+        if (menuRepository.count() == 0) {
+            // Dashboard
+            menuRepository.save(createMenu("Dashboard", "fas fa-th-large", "/dashboard", "ALL", 1));
+            // Karyawan
+            menuRepository.save(createMenu("Karyawan", "fas fa-users", "/employees", "ADMIN", 2));
+            // Absensi
+            menuRepository.save(createMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", 3));
+            // Payroll
+            menuRepository.save(createMenu("Payroll", "fas fa-money-check-alt", "/payroll", "ADMIN", 6));
+            // Performance
+            menuRepository.save(createMenu("Performa", "fas fa-star", "/performance", "ADMIN", 7));
             
-            // Seed Settings
-            if (settingRepository.findBySettingKey("OFFICE_RADIUS").isEmpty()) {
-                settingRepository.save(new Setting(null, "OFFICE_RADIUS", "100", "Radius absensi dalam meter"));
-            }
+            // NEW: Leave Menus
+            menuRepository.save(createMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4));
+            menuRepository.save(createMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5));
+        } else {
+            // Ensure Leave menus exist if others exist
+            checkAndAddMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4);
+            checkAndAddMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5);
+        }
+    }
+
+    private AppMenu createMenu(String title, String icon, String url, String role, int order) {
+        AppMenu m = new AppMenu();
+        m.setTitle(title);
+        m.setIcon(icon);
+        m.setUrl(url);
+        m.setRoleRequired(role);
+        m.setSortOrder(order);
+        return m;
+    }
+
+    private void checkAndAddMenu(String title, String icon, String url, String role, int order) {
+        boolean exists = menuRepository.findAll().stream().anyMatch(m -> m.getUrl().equals(url));
+        if (!exists) {
+            menuRepository.save(createMenu(title, icon, url, role, order));
         }
     }
 }

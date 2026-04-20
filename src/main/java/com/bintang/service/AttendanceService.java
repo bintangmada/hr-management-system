@@ -1,6 +1,8 @@
 package com.bintang.service;
 
 import com.bintang.entity.Attendance;
+import com.bintang.entity.AttendanceLocation;
+import com.bintang.repository.AttendanceLocationRepository;
 import com.bintang.repository.AttendanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,12 @@ public class AttendanceService {
     
     @Autowired
     private AttendanceLocationRepository locationRepository;
+
+    @Autowired
+    private com.bintang.service.AuditService auditService;
+
+    @Autowired
+    private com.bintang.repository.EmployeeRepository employeeRepository;
 
     public boolean isPointInPolygon(double lat, double lng, String polygonJson) {
         if (polygonJson == null || polygonJson.equals("[]")) return false;
@@ -38,7 +46,13 @@ public class AttendanceService {
         }
     }
 
-    public void checkIn(Long employeeId, double lat, double lng) {
+    public Attendance getTodayAttendance(Long employeeId) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+        return attendanceRepository.findTodayAttendance(employeeId, startOfDay, endOfDay).orElse(null);
+    }
+
+    public void checkIn(Long employeeId, String role, double lat, double lng) {
         List<AttendanceLocation> locations = locationRepository.findAll();
         boolean isWithinGeo = false;
         String locationName = "DILUAR_AREA";
@@ -53,12 +67,40 @@ public class AttendanceService {
         
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
-        attendance.setCheckInTime(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        attendance.setCheckInTime(now);
         attendance.setLatitude(lat);
         attendance.setLongitude(lng);
         attendance.setIsWithinGeo(isWithinGeo);
-        attendance.setStatus(isWithinGeo ? "HADIR (" + locationName + ")" : "DILUAR_AREA");
+        
+        // Late calculation (e.g., > 09:00 AM)
+        boolean isLate = now.toLocalTime().isAfter(java.time.LocalTime.of(9, 0));
+        attendance.setIsLate(isLate);
+        
+        attendance.setStatus(isWithinGeo ? (isLate ? "TERLAMBAT" : "HADIR") + " (" + locationName + ")" : "DILUAR_AREA");
         
         attendanceRepository.save(attendance);
+
+        // Add Audit Log
+        employeeRepository.findById(employeeId).ifPresent(emp -> {
+            auditService.log("CHECK_IN", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
+                "Attendance", attendance.getId(), "Check-in: (" + attendance.getStatus() + ")");
+        });
+    }
+
+    public void checkOut(Long attendanceId, String role, double lat, double lng) {
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow();
+        attendance.setCheckOutTime(LocalDateTime.now());
+        attendanceRepository.save(attendance);
+
+        // Add Audit Log
+        employeeRepository.findById(attendance.getEmployeeId()).ifPresent(emp -> {
+            auditService.log("CHECK_OUT", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
+                "Attendance", attendance.getId(), "Check-out dilakukan");
+        });
+    }
+
+    public List<Attendance> getAttendanceHistory(Long employeeId) {
+        return attendanceRepository.findByEmployeeIdOrderByCheckInTimeDesc(employeeId);
     }
 }

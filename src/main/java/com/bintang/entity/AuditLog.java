@@ -21,7 +21,12 @@ public class AuditLog {
     private Long id;
     
     private String action; // e.g., CREATE, UPDATE, DELETE
-    private String performedBy; // Email or NIK
+    private String performedBy; // Legacy fallback
+    
+    private String actorRole;
+    private String actorName;
+    private String actorNik;
+    
     private String entityName;
     private Long entityId;
     private String details;

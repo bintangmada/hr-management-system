@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/settings/attendance-locations")
@@ -26,21 +27,24 @@ public class AttendanceLocationController {
     }
 
     @PostMapping
-    public String saveLocation(@ModelAttribute AttendanceLocation location) {
+    public String saveLocation(@ModelAttribute AttendanceLocation location, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = (location.getId() == null);
         locationRepository.save(location);
         
-        String action = isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION";
-        auditService.log(action, "Admin", "AttendanceLocation", location.getId(), 
-                "Menambahkan/Mengubah lokasi absensi: " + location.getName());
+        String actionType = isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION";
+        String actionMsg = isNew ? "Menambahkan" : "Mengubah";
+        auditService.logWithContext(request, actionType, "AttendanceLocation", location.getId(), 
+                actionMsg + " lokasi absensi: " + location.getName());
         
-        return "redirect:/settings/attendance-locations?success";
+        redirectAttributes.addFlashAttribute("successMessage", "Lokasi absensi berhasil " + (isNew ? "disimpan" : "diperbarui") + "!");
+        return "redirect:/settings/attendance-locations";
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteLocation(@PathVariable Long id) {
+    public String deleteLocation(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         locationRepository.deleteById(id);
-        auditService.log("DELETE_LOCATION", "Admin", "AttendanceLocation", id, "Menghapus lokasi absensi ID: " + id);
-        return "redirect:/settings/attendance-locations?deleted";
+        auditService.logWithContext(request, "DELETE_LOCATION", "AttendanceLocation", id, "Menghapus lokasi absensi ID: " + id);
+        redirectAttributes.addFlashAttribute("successMessage", "Lokasi absensi berhasil dihapus!");
+        return "redirect:/settings/attendance-locations";
     }
 }

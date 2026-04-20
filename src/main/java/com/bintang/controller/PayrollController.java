@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 
 @Controller
@@ -27,11 +28,12 @@ public class PayrollController {
     }
 
     @PostMapping
-    public String generatePayroll(@ModelAttribute Payroll payroll) {
+    public String generatePayroll(@ModelAttribute Payroll payroll, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         payroll.setPaymentDate(LocalDate.now());
         payroll.setNetSalary(payroll.getBasicSalary() + payroll.getAllowances() - payroll.getDeductions());
         payrollRepository.save(payroll);
-        auditService.log("GENERATE_PAYROLL", "Admin", "Payroll", payroll.getId(), "Membuat payroll untuk karyawan ID: " + payroll.getEmployeeId());
-        return "redirect:/payroll?success";
+        auditService.logWithContext(request, "GENERATE_PAYROLL", "Payroll", payroll.getId(), "Membuat payroll untuk karyawan ID: " + payroll.getEmployeeId());
+        redirectAttributes.addFlashAttribute("successMessage", "Payroll berhasil digenerate!");
+        return "redirect:/payroll";
     }
 }

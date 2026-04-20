@@ -2,80 +2,174 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body th:fragment="area_konten">
     <div>
-        <div class="mb-8">
-            <h2 class="text-3xl font-bold text-gray-800">Selamat Datang, Admin!</h2>
-            <p class="text-gray-500">Berikut adalah ringkasan operasional HR hari ini.</p>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-blue-100 rounded-lg text-blue-600">
-                        <i class="fas fa-users text-xl"></i>
-                    </div>
-                    <span class="text-green-500 text-sm font-medium">+5%</span>
-                </div>
-                <h3 class="text-gray-500 text-sm font-medium">Total Karyawan</h3>
-                <p class="text-2xl font-bold text-gray-800">1,248</p>
-            </div>
-            
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-green-100 rounded-lg text-green-600">
-                        <i class="fas fa-user-check text-xl"></i>
-                    </div>
-                    <span class="text-green-500 text-sm font-medium">92%</span>
-                </div>
-                <h3 class="text-gray-500 text-sm font-medium">Kehadiran Hari Ini</h3>
-                <p class="text-2xl font-bold text-gray-800">1,150</p>
+        <!-- ADMIN DASHBOARD -->
+        <div th:if="${role == 'ADMIN'}">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">Selamat Datang, Admin!</h2>
+                <p class="text-gray-500">Ringkasan operasional HR perusahaan hari ini.</p>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-purple-100 rounded-lg text-purple-600">
-                        <i class="fas fa-wallet text-xl"></i>
+            <!-- Stats Cards Admin -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-100 rounded-xl text-blue-600">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
                     </div>
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Total Karyawan</h3>
+                    <p class="text-3xl font-black text-gray-800" th:text="${totalEmployees}">0</p>
                 </div>
-                <h3 class="text-gray-500 text-sm font-medium">Estimasi Payroll</h3>
-                <p class="text-2xl font-bold text-gray-800">Rp 4.2M</p>
+                
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-green-100 rounded-xl text-green-600">
+                            <i class="fas fa-user-check text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Hadir Hari Ini</h3>
+                    <p class="text-3xl font-black text-gray-800" th:text="${presentToday}">0</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-purple-100 rounded-xl text-purple-600">
+                            <i class="fas fa-calendar-alt text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Cuti/Izin</h3>
+                    <p class="text-3xl font-black text-gray-800">0</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-amber-100 rounded-xl text-amber-600">
+                            <i class="fas fa-clock text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Terlambat</h3>
+                    <p class="text-3xl font-black text-gray-800">0</p>
+                </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-yellow-100 rounded-lg text-yellow-600">
-                        <i class="fas fa-clock text-xl"></i>
-                    </div>
-                </div>
-                <h3 class="text-gray-500 text-sm font-medium">Izin/Cuti</h3>
-                <p class="text-2xl font-bold text-gray-800">12</p>
-            </div>
-        </div>
-
-        <!-- Recent Activity & Charts Placeholder -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800 mb-6">Aktivitas Terbaru</h3>
+            <!-- Recent Activity Admin -->
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+                <h3 class="text-xl font-black text-gray-800 mb-8 tracking-tight">Aktivitas Kehadiran Terkini</h3>
                 <div class="space-y-6">
-                    <div class="flex items-start">
-                        <div class="h-2 w-2 rounded-full bg-blue-500 mt-2 mr-4"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-800">Bintang melakukan check-in</p>
-                            <p class="text-xs text-gray-400">08:30 WIB • Lokasi: Kantor Utama</p>
+                    <div th:each="act : ${recentActivity}" class="flex items-center p-4 hover:bg-gray-50 rounded-2xl transition-colors">
+                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-4" th:text="${act.employeeId}"></div>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-gray-800">Karyawan ID: <span th:text="${act.employeeId}"></span> melakukan check-in</p>
+                            <p class="text-xs text-gray-400" th:text="${#temporals.format(act.checkInTime, 'dd MMM yyyy HH:mm')} + ' WIB'"></p>
                         </div>
+                        <span class="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase">Success</span>
                     </div>
-                    <div class="flex items-start">
-                        <div class="h-2 w-2 rounded-full bg-green-500 mt-2 mr-4"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-800">Setting radius absen diubah</p>
-                            <p class="text-xs text-gray-400">Hanya sekarang • Oleh: Admin Utama</p>
-                        </div>
+                    <div th:if="${#lists.isEmpty(recentActivity)}" class="text-center py-10 text-gray-400 italic">
+                        Belum ada aktivitas terekam.
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center border-dashed border-2 border-gray-200">
-                <p class="text-gray-400 italic">Statistik akan muncul di sini setelah data terekam...</p>
+        </div>
+
+        <!-- EMPLOYEE DASHBOARD -->
+        <div th:if="${role == 'EMPLOYEE'}">
+            <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-black text-gray-800 tracking-tight">Selamat Datang, <span th:text="${employee != null ? employee.firstName : 'User'}">Bintang</span>!</h2>
+                    <p class="text-gray-500 font-medium" th:text="${employee != null ? employee.jobId + ' • ' + employee.departmentId : 'Karyawan'}">Software Engineer • IT Division</p>
+                </div>
+                <a th:href="@{/attendance}" class="bg-blue-600 text-white px-8 py-4 rounded-3xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 text-center">
+                    ABSENSI HARI INI
+                </a>
+            </div>
+
+            <!-- Stats Cards Employee -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-blue-600">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Hadir (Bulan Ini)</h3>
+                    <p class="text-4xl font-black text-gray-800"><span th:text="${daysPresent}">0</span> <span class="text-base font-bold text-gray-400">Hari</span></p>
+                </div>
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-amber-500">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Terlambat</h3>
+                    <p class="text-4xl font-black text-gray-800"><span th:text="${timesLate}">0</span> <span class="text-base font-bold text-gray-400">Kali</span></p>
+                </div>
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-purple-500">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Skor Performa</h3>
+                    <p class="text-4xl font-black text-gray-800" th:text="${latestPerformance != null ? latestPerformance.score : '-'}">0</p>
+                </div>
+                <!-- Cuti Stats -->
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-teal-500">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Sisa Cuti Tahunan</h3>
+                    <p class="text-4xl font-black text-gray-800"><span th:text="${leaveRemaining}">0</span> <span class="text-base font-bold text-gray-400" th:text="'/ ' + ${leaveQuota} + ' Hari'">/ 12 Hari</span></p>
+                </div>
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-rose-500">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Cuti Terpakai</h3>
+                    <p class="text-4xl font-black text-gray-800"><span th:text="${leaveTaken}">0</span> <span class="text-base font-bold text-gray-400">Hari</span></p>
+                </div>
+                <!-- Gaji -->
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 border-b-4 border-b-green-500">
+                    <h3 class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Gaji Terakhir</h3>
+                    <p class="text-2xl mt-2 font-black text-gray-800 truncate" th:text="${latestPayroll != null ? 'Rp ' + #numbers.formatDecimal(latestPayroll.netSalary, 0, 'COMMA', 0, 'POINT') : '-'}">-</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Presence Status Today -->
+                <div class="lg:col-span-1 bg-white p-10 rounded-[2.5rem] shadow-lg shadow-blue-50 border border-blue-50">
+                    <h3 class="text-lg font-black text-gray-800 mb-8">Status Hari Ini</h3>
+                    <div class="space-y-8">
+                        <div class="flex items-center">
+                            <div th:class="${todayAttendance != null ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'} + ' p-4 rounded-2xl mr-5'">
+                                <i class="fas fa-sign-in-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Masuk</span>
+                                <span class="text-xl font-black text-gray-800" th:text="${todayAttendance != null ? #temporals.format(todayAttendance.checkInTime, 'HH:mm') : '--:--'}">08:00</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div th:class="${todayAttendance != null && todayAttendance.checkOutTime != null ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'} + ' p-4 rounded-2xl mr-5'">
+                                <i class="fas fa-sign-out-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pulang</span>
+                                <span class="text-xl font-black text-gray-800" th:text="${todayAttendance != null && todayAttendance.checkOutTime != null ? #temporals.format(todayAttendance.checkOutTime, 'HH:mm') : '--:--'}">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Logs Employee -->
+                <div class="lg:col-span-2 bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-black text-gray-800 mb-8">Riwayat Kehadiran Terakhir</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="border-b border-gray-50">
+                                <tr>
+                                    <th class="pb-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tanggal</th>
+                                    <th class="pb-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Masuk</th>
+                                    <th class="pb-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Pulang</th>
+                                    <th class="pb-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <tr th:each="log : ${myRecentLogs}" class="group">
+                                    <td class="py-5 text-sm font-bold text-gray-700" th:text="${#temporals.format(log.checkInTime, 'dd MMM yyyy')}"></td>
+                                    <td class="py-5 text-sm font-black text-gray-900 font-mono" th:text="${#temporals.format(log.checkInTime, 'HH:mm')}"></td>
+                                    <td class="py-5 text-sm font-black text-gray-900 font-mono" th:text="${log.checkOutTime != null ? #temporals.format(log.checkOutTime, 'HH:mm') : '-'}"></td>
+                                    <td class="py-5">
+                                        <span th:if="${log.isLate != null and log.isLate}" class="text-[10px] font-black bg-red-50 text-red-500 px-3 py-1 rounded-full uppercase">Terlambat</span>
+                                        <span th:if="${log.isLate != null and !log.isLate}" class="text-[10px] font-black bg-green-50 text-green-500 px-3 py-1 rounded-full uppercase">Tepat Waktu</span>
+                                        <span th:if="${log.isLate == null}" class="text-[10px] font-black bg-gray-50 text-gray-500 px-3 py-1 rounded-full uppercase">-</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(myRecentLogs)}">
+                                    <td colspan="4" class="py-10 text-center text-gray-400 italic">Belum ada riwayat absen.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

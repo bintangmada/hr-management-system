@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body th:fragment="area_konten">
+    <div>
+        <div class="mb-10 flex justify-between items-center">
+            <div>
+                <h2 class="text-3xl font-black text-gray-800 tracking-tight">Pengajuan Cuti</h2>
+                <p class="text-gray-500">Kelola permohonan cuti dan izin kerja Anda.</p>
+            </div>
+            <button onclick="openModal('modalLeave')" 
+                    class="bg-blue-600 text-white px-8 py-4 rounded-3xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                + Ajukan Cuti
+            </button>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200" id="leaveTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Jenis Cuti</th>
+                        <th class="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Tanggal Pelaksanaan</th>
+                        <th class="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Alasan</th>
+                        <th class="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Status</th>
+                        <th class="px-8 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Catatan Admin</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    <tr th:each="l : ${myLeaves}" class="hover:bg-blue-50/30 transition-colors">
+                        <td class="px-8 py-5 font-bold text-gray-800" th:text="${l.leaveType}">ANNUAL</td>
+                        <td class="px-8 py-5">
+                            <span class="text-xs font-black text-blue-600" th:text="${l.startDate} + ' s/d ' + ${l.endDate}"></span>
+                            <span class="block text-[10px] mt-1 font-bold text-gray-400" th:text="'(' + ${l.durationDays} + ' Hari)'"></span>
+                        </td>
+                        <td class="px-8 py-5 text-gray-500 text-sm max-w-xs truncate" th:text="${l.reason}">Alasan...</td>
+                        <td class="px-8 py-5">
+                            <span th:if="${l.status == 'PENDING'}" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">PENDING</span>
+                            <span th:if="${l.status == 'APPROVED'}" class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">DISETUJUI</span>
+                            <span th:if="${l.status == 'REJECTED'}" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">DITOLAK</span>
+                        </td>
+                        <td class="px-8 py-5 text-right text-xs italic text-gray-400" th:text="${l.adminComment ?: '-'}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(myLeaves)}">
+                        <td colspan="5" class="px-8 py-12 text-center text-gray-400 italic font-medium">Belum ada riwayat pengajuan cuti.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal Submit Leave -->
+        <div id="modalLeave" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100] px-4">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-sm shadow-2xl relative border border-white max-h-[95vh] overflow-hidden flex flex-col">
+                <!-- Sticky Close Button -->
+                <button type="button" onclick="closeModal('modalLeave')" 
+                        class="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-all z-[120] p-2 hover:bg-gray-50 rounded-full">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div class="p-10 overflow-y-auto custom-scrollbar">
+                    <h3 class="text-2xl font-black mb-8 text-gray-900 tracking-tight">Form Pengajuan Cuti</h3>
+                    <form id="formLeave" th:action="@{/leaves}" method="post" class="space-y-6">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Jenis Cuti</label>
+                            <select name="leaveType" required class="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100 appearance-none">
+                                <option value="CUTI TAHUNAN">Cuti Tahunan</option>
+                                <option value="IJIN SAKIT">Ijin Sakit</option>
+                                <option value="CUTI MELAHIRKAN">Cuti Melahirkan</option>
+                                <option value="KEPERLUAN PENDIDIKAN">Keperluan Pendidikan</option>
+                                <option value="IJIN LAINNYA">Ijin Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Tanggal Mulai</label>
+                                <input type="date" name="startDate" id="startDate" required onchange="calculateDuration()" 
+                                       class="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sampai Dengan</label>
+                                <input type="date" name="endDate" id="endDate" required onchange="calculateDuration()" 
+                                       class="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100">
+                            </div>
+                        </div>
+
+                        <!-- Duration Display -->
+                        <div id="durationWrapper" class="hidden bg-blue-50/50 p-4 rounded-3xl border border-blue-100 flex items-center justify-between">
+                            <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Durasi Cuti:</span>
+                            <span id="durationDays" class="text-lg font-black text-blue-700">0 Hari</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Alasan / Keterangan</label>
+                            <textarea name="reason" required rows="3" class="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100 placeholder-gray-300" placeholder="Tuliskan alasan pengajuan cuti Anda..."></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-4 pt-6">
+                            <button type="button" onclick="closeModal('modalLeave')" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700">Batal</button>
+                            <button type="button" onclick="confirmSubmitLeave()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
+                                KIRIM PENGAJUAN
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { 
+            document.getElementById(id).classList.add('hidden');
+            // Reset duration
+            document.getElementById('durationWrapper').classList.add('hidden');
+            document.getElementById('formLeave').reset();
+        }
+
+        // Escape Key Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal('modalLeave');
+        });
+
+        function calculateDuration() {
+            const startStr = document.getElementById('startDate').value;
+            const endStr = document.getElementById('endDate').value;
+            const wrapper = document.getElementById('durationWrapper');
+            const display = document.getElementById('durationDays');
+
+            if (startStr && endStr) {
+                const start = new Date(startStr);
+                const end = new Date(endStr);
+                
+                if (end >= start) {
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    display.innerText = diffDays + " Hari";
+                    wrapper.classList.remove('hidden');
+                } else {
+                    wrapper.classList.add('hidden');
+                }
+            } else {
+                wrapper.classList.add('hidden');
+            }
+        }
+
+        function confirmSubmitLeave() {
+            confirmAction('formLeave', 'Kirim Pengajuan Cuti?', 'Pastikan tanggal dan alasan yang Anda masukkan sudah benar.', 'question');
+        }
+    </script>
+</body>
+</html>

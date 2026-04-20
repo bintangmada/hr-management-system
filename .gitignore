@@ -25,3 +25,6 @@ replay_pid*
 
 # Configuration files
 src/main/resources/application.properties
+target/
+.DS_Store
+.vscode/
