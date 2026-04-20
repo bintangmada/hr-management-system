@@ -24,4 +24,6 @@ public class AppMenu {
     private Integer sortOrder;
     
     private Boolean isActive = true;
+
+    private String permittedNiks; // Comma separated NIKs
 }

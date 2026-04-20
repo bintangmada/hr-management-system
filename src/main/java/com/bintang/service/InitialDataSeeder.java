@@ -19,9 +19,11 @@ public class InitialDataSeeder {
     @Autowired private SettingRepository settingRepository;
 
     @Autowired private AttendanceLocationRepository attendanceLocationRepository;
+    @Autowired private AppMenuRepository menuRepository;
 
     @PostConstruct
     public void seed() {
+        seedMenus();
         if (regionRepository.count() == 0) {
             // Seed Regions
             Region asia = regionRepository.save(new Region(null, "Asia"));
@@ -77,6 +79,46 @@ public class InitialDataSeeder {
         // Seed Settings
         if (settingRepository.findBySettingKey("OFFICE_RADIUS").isEmpty()) {
             settingRepository.save(new Setting(null, "OFFICE_RADIUS", "100", "Radius absensi dalam meter"));
+        }
+    }
+
+    private void seedMenus() {
+        if (menuRepository.count() == 0) {
+            // Dashboard
+            menuRepository.save(createMenu("Dashboard", "fas fa-th-large", "/dashboard", "ALL", 1));
+            // Karyawan
+            menuRepository.save(createMenu("Karyawan", "fas fa-users", "/employees", "ADMIN", 2));
+            // Absensi
+            menuRepository.save(createMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", 3));
+            // Payroll
+            menuRepository.save(createMenu("Payroll", "fas fa-money-check-alt", "/payroll", "ADMIN", 6));
+            // Performance
+            menuRepository.save(createMenu("Performa", "fas fa-star", "/performance", "ADMIN", 7));
+            
+            // NEW: Leave Menus
+            menuRepository.save(createMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4));
+            menuRepository.save(createMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5));
+        } else {
+            // Ensure Leave menus exist if others exist
+            checkAndAddMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4);
+            checkAndAddMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5);
+        }
+    }
+
+    private AppMenu createMenu(String title, String icon, String url, String role, int order) {
+        AppMenu m = new AppMenu();
+        m.setTitle(title);
+        m.setIcon(icon);
+        m.setUrl(url);
+        m.setRoleRequired(role);
+        m.setSortOrder(order);
+        return m;
+    }
+
+    private void checkAndAddMenu(String title, String icon, String url, String role, int order) {
+        boolean exists = menuRepository.findAll().stream().anyMatch(m -> m.getUrl().equals(url));
+        if (!exists) {
+            menuRepository.save(createMenu(title, icon, url, role, order));
         }
     }
 }

@@ -27,4 +27,5 @@ public class Attendance {
     private Double latitude;
     private Double longitude;
     private Boolean isWithinGeo;
+    private Boolean isLate;
 }

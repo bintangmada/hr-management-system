@@ -50,7 +50,8 @@ public class AttendanceController {
             @RequestParam double lng) {
         
         Long employeeId = (Long) request.getAttribute("employeeId");
-        attendanceService.checkIn(employeeId, lat, lng);
+        String role = (String) request.getAttribute("role");
+        attendanceService.checkIn(employeeId, role, lat, lng);
         
         return "redirect:/attendance?success=checkin";
     }
@@ -62,7 +63,9 @@ public class AttendanceController {
             @RequestParam double lat,
             @RequestParam double lng) {
         
-        attendanceService.checkOut(attendanceId, lat, lng);
+        Long employeeId = (Long) request.getAttribute("employeeId");
+        String role = (String) request.getAttribute("role");
+        attendanceService.checkOut(attendanceId, role, lat, lng);
         
         return "redirect:/attendance?success=checkout";
     }

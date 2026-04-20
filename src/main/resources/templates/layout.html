@@ -10,36 +10,65 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    
+    <!-- DataTables JS & jQuery (Moved up to ensure availability for fragments) -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .glass-sidebar {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-right: 1px solid rgba(229, 231, 235, 1);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none !important; }
+        .sidebar-collapsed .sidebar-header-text { display: none !important; }
+        .sidebar-collapsed .sidebar-submenu-arrow { display: none !important; }
+        .main-expanded { margin-left: 80px !important; }
+        .transition-sidebar { transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
 
+    <!-- Mobile Backdrop -->
+    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity duration-300"></div>
+
     <!-- Sidebar -->
-    <aside class="fixed inset-y-0 left-0 w-64 glass-sidebar hidden lg:block z-50">
-        <div class="px-6 py-8">
-            <h1 class="text-2xl font-bold text-blue-600 flex items-center">
-                <i class="fas fa-users-cog mr-2"></i> HRMS
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-64 glass-sidebar transition-transform duration-300 -translate-x-full lg:translate-x-0 z-50 shadow-2xl lg:shadow-none">
+        <div class="px-6 py-8 flex items-center justify-between overflow-hidden">
+            <h1 class="text-2xl font-bold text-blue-600 flex items-center whitespace-nowrap">
+                <i class="fas fa-users-cog mr-2 shrink-0"></i> 
+                <span class="sidebar-header-text">HRMS</span>
             </h1>
+            <!-- Close button for mobile -->
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
         </div>
         
-        <nav class="p-4 space-y-2">
+        <nav class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
             <div th:each="wrapper : ${sidebarMenus}" class="relative group">
                 <!-- If has children: Dropdown -->
                 <div th:if="${not #lists.isEmpty(wrapper.children)}" class="relative">
-                    <button th:onclick="'toggleSubmenu(\'submenu' + ${wrapper.menu.id} + '\')'" 
+                    <button th:data-target-id="'submenu' + ${wrapper.menu.id}" 
+                            onclick="toggleSubmenu(this.getAttribute('data-target-id'), this)"
                             class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
-                        <span class="flex items-center">
-                            <i th:class="${wrapper.menu.icon != null ? wrapper.menu.icon : 'fas fa-circle text-[6px]'} + ' w-6'"></i>
-                            <span th:text="${wrapper.menu.title}">Title</span>
+                        <span class="flex items-center overflow-hidden">
+                            <i th:class="${wrapper.menu.icon != null ? wrapper.menu.icon : 'fas fa-circle text-[6px]'} + ' w-6 shrink-0'"></i>
+                            <span th:text="${wrapper.menu.title}" class="sidebar-text whitespace-nowrap">Title</span>
                         </span>
-                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-300" th:id="'arrow' + ${wrapper.menu.id}"></i>
+                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-300 sidebar-submenu-arrow" th:id="'arrow' + ${wrapper.menu.id}"></i>
                     </button>
                     <div th:id="'submenu' + ${wrapper.menu.id}" class="pl-10 mt-1 space-y-1 hidden">
                         <a th:each="child : ${wrapper.children}" 
@@ -52,26 +81,27 @@
                 <!-- If NO children: Standard link -->
                 <a th:if="${#lists.isEmpty(wrapper.children)}" 
                    th:href="@{${wrapper.menu.url}}" 
-                   class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
-                    <i th:class="${wrapper.menu.icon != null ? wrapper.menu.icon : 'fas fa-circle text-[6px]'} + ' w-6'"></i>
-                    <span th:text="${wrapper.menu.title}">Title</span>
+                   class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all overflow-hidden">
+                    <i th:class="${wrapper.menu.icon != null ? wrapper.menu.icon : 'fas fa-circle text-[6px]'} + ' w-6 shrink-0'"></i>
+                    <span th:text="${wrapper.menu.title}" class="sidebar-text whitespace-nowrap">Title</span>
                 </a>
             </div>
         </nav>
 
-        <!-- Logout at Bottom of Sidebar -->
-        <div class="absolute bottom-0 w-64 p-4 border-t border-gray-100 bg-white">
-            <a th:href="@{/logout}" class="flex items-center px-4 py-3 text-sm font-bold rounded-xl text-red-500 hover:bg-red-50 transition-all">
-                <i class="fas fa-sign-out-alt w-6"></i> Logout
-            </a>
+        <!-- Toggle Collapse/Expand at Bottom -->
+        <div class="absolute bottom-0 w-full p-4 border-t border-gray-100 bg-white">
+            <button onclick="toggleCollapse()" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded-xl text-gray-500 hover:bg-gray-50 transition-all overflow-hidden">
+                <i id="collapseIcon" class="fas fa-indent w-6 shrink-0"></i> 
+                <span class="sidebar-text ml-1 whitespace-nowrap">Tutup Menu</span>
+            </button>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="lg:ml-64 min-h-screen">
+    <main id="mainContent" class="lg:ml-64 min-h-screen transition-sidebar duration-300">
         <!-- Top Bar -->
         <header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-40">
-            <button class="lg:hidden text-gray-500 hover:text-gray-700">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-gray-700 active:scale-90 transition-transform">
                 <i class="fas fa-bars text-xl"></i>
             </button>
             <div class="relative w-96 hidden md:block">
@@ -81,42 +111,219 @@
                 <input type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Cari data...">
             </div>
             <div class="flex items-center space-x-4">
-                <button class="text-gray-500 hover:text-gray-700 relative">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
-                </button>
-                <a th:href="@{/logout}" class="flex items-center space-x-2 group">
-                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold group-hover:bg-blue-600 transition-colors">
-                        <span th:text="${nik != null ? #strings.substring(nik, 0, 1) : 'U'}">B</span>
+                <!-- Notifications Dropdown -->
+                <div class="relative" id="notifDropdown">
+                    <button onclick="toggleNotif()" class="text-gray-500 hover:text-gray-700 relative p-2 rounded-full hover:bg-gray-100 transition-all">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span th:if="${unreadCount > 0}" 
+                              class="absolute top-1 right-1 block h-5 w-5 rounded-full bg-red-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-white" 
+                              th:text="${unreadCount}">3</span>
+                    </button>
+                    
+                    <!-- Dropdown Panel -->
+                    <div id="notifPanel" class="hidden absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-[100] overflow-hidden">
+                        <div class="p-6 border-b border-gray-50 flex justify-between items-center">
+                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">Notifikasi</h3>
+                            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg" th:text="${unreadCount + ' Baru'}"></span>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto custom-scrollbar">
+                            <div th:each="n : ${recentNotifications}" class="group">
+                                <a th:href="@{'/notifications/read/' + ${n.id}}" 
+                                   th:class="${n.isRead ? 'bg-white' : 'bg-blue-50/40'} + ' block p-5 hover:bg-blue-50 transition-all border-b border-gray-50 last:border-0 border-l-4 border-l-transparent hover:border-l-blue-500 relative'">
+                                    
+                                    <!-- Unread Dot -->
+                                    <span th:if="${!n.isRead}" class="absolute top-6 right-6 w-2 h-2 bg-blue-500 rounded-full shadow-sm shadow-blue-200"></span>
+                                    
+                                    <h4 class="text-xs font-black text-gray-800 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight" th:text="${n.title}">Title</h4>
+                                    <p class="text-[11px] text-gray-500 leading-relaxed font-medium" th:text="${n.message}">Message content here...</p>
+                                    <span class="text-[9px] text-gray-400 mt-2 block font-bold" th:text="${#temporals.format(n.createdAt, 'dd MMM, HH:mm')}">Time</span>
+                                </a>
+                            </div>
+                            <div th:if="${#lists.isEmpty(recentNotifications)}" class="p-10 text-center">
+                                <div class="w-12 h-12 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-bell-slash"></i>
+                                </div>
+                                <p class="text-xs text-gray-400 italic">Tidak ada notifikasi.</p>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 text-center">
+                            <button class="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-blue-600 transition-colors">Arsip Notifikasi</button>
+                        </div>
                     </div>
-                    <span class="text-xs font-semibold text-gray-500 group-hover:text-red-500 transition-colors">Logout</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold" th:title="${nik}">
+                        <span th:text="${nik != null && !#strings.isEmpty(nik) ? #strings.substring(nik, 0, 1) : 'U'}">B</span>
+                    </div>
+                </div>
+                <!-- New Navbar Logout -->
+                <a th:href="@{/logout}" class="flex items-center space-x-2 px-4 py-2 text-xs font-black text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-all active:scale-95">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>LOGOUT</span>
                 </a>
             </div>
         </header>
 
+        <!-- Hidden inputs for backend messages to avoid scripting errors -->
+        <input type="hidden" id="successMsg" th:value="${successMessage}">
+        <input type="hidden" id="errorMsg" th:value="${errorMessage}">
+
         <!-- Content Area -->
         <div class="p-8">
-            <div th:replace="~{__${content}__ :: area_konten}">
+            <div th:replace="~{${content} :: area_konten}">
                 <!-- Dynamic Content Here -->
             </div>
         </div>
     </main>
 
+    <!-- Global Scripts -->
+
     <script th:inline="javascript">
-        function toggleSubmenu(id) {
+        // Global Toast Configuration
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        // Global Confirmation Function
+        function confirmAction(formId, title = 'Apakah Anda yakin?', text = 'Aksi ini tidak dapat dibatalkan!', icon = 'warning') {
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: icon,
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, Lanjutkan!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    container: 'z-[9999]',
+                    popup: 'rounded-[2rem]'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // Show Notifications based on Backend Messages
+        const successMessage = document.getElementById('successMsg').value;
+        const errorMessage = document.getElementById('errorMsg').value;
+
+        if (successMessage) {
+            Toast.fire({ icon: 'success', title: successMessage });
+        }
+        if (errorMessage) {
+            Swal.fire({ 
+                icon: 'error', 
+                title: 'Terjadi Kesalahan', 
+                text: errorMessage, 
+                confirmButtonColor: '#2563eb', 
+                customClass: { popup: 'rounded-[2rem]' } 
+            });
+        }
+
+        function toggleSubmenu(id, btn) {
             const el = document.getElementById(id);
             const arrow = document.getElementById('arrow' + id.replace('submenu', ''));
             el.classList.toggle('hidden');
             if (arrow) arrow.classList.toggle('rotate-180');
         }
 
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mainSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const isHidden = sidebar.classList.contains('-translate-x-full');
+            
+            if (isHidden) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.add('opacity-100'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.remove('opacity-100');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        function toggleNotif() {
+            const panel = document.getElementById('notifPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleCollapse() {
+            const sidebar = document.getElementById('mainSidebar');
+            const main = document.getElementById('mainContent');
+            const icon = document.getElementById('collapseIcon');
+            const btnText = document.querySelector('.sidebar-text.ml-1');
+            
+            sidebar.classList.toggle('sidebar-collapsed');
+            main.classList.toggle('main-expanded');
+            
+            const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+            
+            if (isCollapsed) {
+                icon.classList.replace('fa-indent', 'fa-outdent');
+                btnText.innerText = "Buka";
+            } else {
+                icon.classList.replace('fa-outdent', 'fa-indent');
+                btnText.innerText = "Tutup Menu";
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            const panel = document.getElementById('notifPanel');
+            const dropdown = document.getElementById('notifDropdown');
+            if (panel && !dropdown.contains(event.target)) {
+                panel.classList.add('hidden');
+            }
+        }
+
         // Auto-open submenu if on relevant page
         window.onload = function() {
-            const path = window.location.pathname;
-            if (path.includes('/master-data/')) {
-                document.getElementById('submenuMaster').classList.remove('hidden');
-                document.getElementById('arrowMaster').classList.add('rotate-180');
+            // Restore Sidebar State
+            if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                toggleCollapse();
             }
+
+            const path = window.location.pathname;
+            
+            // Intelligent Submenu Picker: Find link that matches current path
+            const allLinks = document.querySelectorAll('aside nav a');
+            allLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                // Support exact match or match with trailing slash
+                if (href && (path === href || path === href + '/' || href === path + '/')) {
+                    // Mark link as active
+                    link.classList.add('bg-blue-50/50', 'text-blue-600', 'font-black');
+                    
+                    // If this link is inside a submenu, open the parent submenu
+                    const submenuWrapper = link.closest('div[id^="submenu"]');
+                    if (submenuWrapper) {
+                        submenuWrapper.classList.remove('hidden');
+                        const menuId = submenuWrapper.id.replace('submenu', '');
+                        const arrow = document.getElementById('arrow' + menuId);
+                        if (arrow) arrow.classList.add('rotate-180');
+                        
+                        // Also style the parent button of this submenu
+                        const parentBtn = document.querySelector(`[data-target-id="${submenuWrapper.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('bg-blue-50', 'text-blue-600');
+                        }
+                    }
+                }
+            });
         };
     </script>
 </body>

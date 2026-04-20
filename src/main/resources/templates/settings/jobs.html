@@ -36,15 +36,24 @@
                         <td class="px-8 py-5 text-gray-600" th:text="${#numbers.formatDecimal(j.minSalary, 0, 'COMMA', 0, 'POINT')}"></td>
                         <td class="px-8 py-5 text-gray-600" th:text="${#numbers.formatDecimal(j.maxSalary, 0, 'COMMA', 0, 'POINT')}"></td>
                         <td class="px-8 py-5 text-right space-x-3 text-sm">
-                            <button class="text-blue-600 hover:underline font-bold" th:onclick="prepareModal('modalJob', 'detail', [[${j}]])">Detail</button>
-                            <button class="text-amber-600 hover:underline font-bold" th:onclick="prepareModal('modalJob', 'edit', [[${j}]])">Edit</button>
-                            <form th:action="@{/settings/master-data/jobs/delete/{id}(id=${j.id})}" method="post" class="inline">
-                                <button type="submit" class="text-red-500 hover:underline font-bold" onclick="return confirm('Hapus jabatan ini?')">Hapus</button>
+                            <button class="text-blue-600 hover:underline font-bold" 
+                                    th:data-id="${j.id}"
+                                    th:data-title="${j.title}"
+                                    th:data-min="${j.minSalary}"
+                                    th:data-max="${j.maxSalary}"
+                                    onclick="prepareModalByBtn(this, 'detail')">Detail</button>
+                            <button class="text-amber-600 hover:underline font-bold" 
+                                    th:data-id="${j.id}"
+                                    th:data-title="${j.title}"
+                                    th:data-min="${j.minSalary}"
+                                    th:data-max="${j.maxSalary}"
+                                    onclick="prepareModalByBtn(this, 'edit')">Edit</button>
+                            <form th:id="'deleteForm' + ${j.id}" th:action="@{/settings/master-data/jobs/delete/{id}(id=${j.id})}" method="post" class="inline">
+                                <button type="button" class="text-red-500 hover:underline font-bold" 
+                                        th:data-form-id="'deleteForm' + ${j.id}"
+                                        onclick="confirmAction(this.getAttribute('data-form-id'), 'Hapus Jabatan?', 'Data jabatan ini akan dihapus permanen.', 'error')">Hapus</button>
                             </form>
                         </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(jobs)}">
-                        <td colspan="5" class="px-8 py-12 text-center text-gray-400 italic">Belum ada data jabatan.</td>
                     </tr>
                 </tbody>
             </table>
@@ -52,40 +61,71 @@
 
         <!-- Modal Job -->
         <div id="modalJob" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100] px-4">
-            <div class="bg-white p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl border border-white">
-                <h3 id="modalTitle" class="text-2xl font-black mb-8 text-gray-900 tracking-tight">Jabatan</h3>
-                <form th:action="@{/settings/master-data/jobs}" method="post" class="space-y-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">ID Jabatan (Kode)</label>
-                        <input type="text" name="id" id="jobId" required class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-blue-100 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Jabatan</label>
-                        <input type="text" name="title" id="jobTitle" required class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
-                    </div>
-                    <div class="grid grid-cols-2 gap-6">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl border border-white max-h-[90vh] overflow-hidden flex flex-col relative">
+                <!-- Close Button -->
+                <button type="button" onclick="closeModal('modalJob')" 
+                        class="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors z-[120]">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div class="p-10 overflow-y-auto custom-scrollbar">
+                    <h3 id="modalTitle" class="text-2xl font-black mb-8 text-gray-900 tracking-tight">Jabatan</h3>
+                    <form id="formJob" th:action="@{/settings/master-data/jobs}" method="post" class="space-y-6">
                         <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Min Salary</label>
-                            <input type="number" name="minSalary" id="jobMinSalary" class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">ID Jabatan (Kode)</label>
+                            <input type="text" name="id" id="jobId" required class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-blue-100 outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Max Salary</label>
-                            <input type="number" name="maxSalary" id="jobMaxSalary" class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Jabatan</label>
+                            <input type="text" name="title" id="jobTitle" required class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
                         </div>
-                    </div>
-                    <div class="flex justify-end space-x-4 pt-4">
-                        <button type="button" onclick="closeModal('modalJob')" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700 transition-all">Batal</button>
-                        <button type="submit" id="btnSubmit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
-                            SIMPAN
-                        </button>
-                    </div>
-                </form>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Min Salary</label>
+                                <input type="number" name="minSalary" id="jobMinSalary" class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Max Salary</label>
+                                <input type="number" name="maxSalary" id="jobMaxSalary" class="w-full px-6 py-5 bg-gray-50 border border-gray-100 rounded-3xl">
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4 pt-4">
+                            <button type="button" onclick="closeModal('modalJob')" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700 transition-all">Batal</button>
+                            <button type="button" onclick="submitJobForm()" id="btnSubmit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
+                                SIMPAN
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <script th:inline="javascript">
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Escape Key Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal('modalJob');
+        });
+
+        function submitJobForm() {
+            const isEdit = document.getElementById('jobId').readOnly; // Use readOnly to check mode
+            confirmAction('formJob', 
+                isEdit ? 'Ubah Jabatan?' : 'Tambah Jabatan?', 
+                isEdit ? 'Perubahan pada data ini akan disimpan.' : 'Data jabatan baru akan ditambahkan.',
+                'question');
+        }
+
+        function prepareModalByBtn(btn, mode) {
+            const data = {
+                id: btn.getAttribute('data-id'),
+                title: btn.getAttribute('data-title'),
+                minSalary: btn.getAttribute('data-min'),
+                maxSalary: btn.getAttribute('data-max')
+            };
+            prepareModal('modalJob', mode, data);
+        }
 
         function prepareModal(modalId, mode, data) {
             const modal = document.getElementById(modalId);
@@ -97,6 +137,7 @@
             form.reset();
             inputs.forEach(i => {
                 i.disabled = (mode === 'detail');
+                i.readOnly = false;
                 i.classList.remove('bg-gray-100');
                 if (mode === 'detail') i.classList.add('bg-gray-100');
             });
@@ -105,11 +146,11 @@
 
             if (mode === 'add') {
                 title.innerText = 'Tambah Jabatan';
-                document.getElementById('jobId').disabled = false;
+                document.getElementById('jobId').readOnly = false;
             } else {
                 title.innerText = (mode === 'detail' ? 'Detail Jabatan' : 'Ubah Jabatan');
                 document.getElementById('jobId').value = data.id;
-                document.getElementById('jobId').disabled = true; // PK string usually immutable
+                document.getElementById('jobId').readOnly = true; // PK usually immutable
                 document.getElementById('jobTitle').value = data.title;
                 document.getElementById('jobMinSalary').value = data.minSalary;
                 document.getElementById('jobMaxSalary').value = data.maxSalary;

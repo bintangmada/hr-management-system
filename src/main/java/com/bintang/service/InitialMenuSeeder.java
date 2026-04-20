@@ -42,11 +42,14 @@ public class InitialMenuSeeder {
         // 7. Audit Logs
         createMenu("Audit Logs", "fas fa-history", "/admin/audit-logs", "ADMIN", null, 7);
         
-        // 8. Manajemen Menu (New)
+        // 8. Manajemen Menu
         createMenu("Manajemen Menu", "fas fa-list-ul", "/settings/menu-management", "ADMIN", null, 8);
 
-        // 9. Absensi Digital
-        createMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", null, 9);
+        // 9. Manajemen User (New)
+        createMenu("Manajemen User", "fas fa-user-shield", "/settings/user-management", "ADMIN", null, 9);
+
+        // 10. Absensi Digital
+        createMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", null, 10);
     }
 
     private AppMenu createMenu(String title, String icon, String url, String role, Long parentId, Integer order) {

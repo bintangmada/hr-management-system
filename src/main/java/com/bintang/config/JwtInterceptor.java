@@ -20,6 +20,9 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Autowired
     private com.bintang.repository.AppMenuRepository menuRepository;
 
+    @Autowired
+    private com.bintang.repository.AppNotificationRepository notificationRepository;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String token = null;
@@ -45,8 +48,7 @@ public class JwtInterceptor implements HandlerInterceptor {
                                  path.startsWith("/employees") || 
                                  path.startsWith("/admin") || 
                                  path.startsWith("/payroll") || 
-                                 path.startsWith("/performance") ||
-                                 path.startsWith("/dashboard");
+                                 path.startsWith("/performance");
 
             if (isAdminPath && !"ADMIN".equals(role)) {
                 response.sendRedirect("/attendance?error=unauthorized");
@@ -68,8 +70,21 @@ public class JwtInterceptor implements HandlerInterceptor {
 
             // Fetch and Filter Menus
             List<com.bintang.entity.AppMenu> allMenus = menuRepository.findByIsActiveOrderBySortOrderAsc(true);
+            String currentNik = (String) request.getAttribute("nik");
+            
             List<com.bintang.entity.AppMenu> filteredMenus = allMenus.stream()
-                .filter(m -> "ALL".equals(m.getRoleRequired()) || role.equals(m.getRoleRequired()))
+                .filter(m -> {
+                    // Specific NIK Override
+                    if (m.getPermittedNiks() != null && !m.getPermittedNiks().trim().isEmpty()) {
+                        String[] allowedNiks = m.getPermittedNiks().split(",");
+                        for (String n : allowedNiks) {
+                            if (n.trim().equals(currentNik)) return true;
+                        }
+                        return false; // If NIK list is present but user not in it
+                    }
+                    // Standard Role Based
+                    return "ALL".equals(m.getRoleRequired()) || role.equals(m.getRoleRequired());
+                })
                 .collect(java.util.stream.Collectors.toList());
 
             // Group Parents and Children
@@ -93,6 +108,13 @@ public class JwtInterceptor implements HandlerInterceptor {
             }
 
             modelAndView.addObject("sidebarMenus", menuStructure);
+
+            // Fetch Notifications (Mixed: Read & Unread)
+            List<com.bintang.entity.AppNotification> recentNotifications = notificationRepository.findTop5ByTargetNikOrderByCreatedAtDesc(currentNik);
+            long unreadCount = notificationRepository.findByTargetNikAndIsReadOrderByCreatedAtDesc(currentNik, false).size();
+            
+            modelAndView.addObject("recentNotifications", recentNotifications);
+            modelAndView.addObject("unreadCount", unreadCount);
         }
     }
 

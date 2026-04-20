@@ -41,4 +41,5 @@ public class Employee {
     
     private String password;
     private String role; // ADMIN or EMPLOYEE
+    private Boolean isActive = true;
 }

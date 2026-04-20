@@ -8,7 +8,7 @@
                 <p class="text-gray-500">Katalog lengkap data karyawan perusahaan.</p>
             </div>
             <button onclick="prepareEmployeeModal('modalEmployee', 'add')" 
-                    class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg">
+                    class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95">
                 + Tambah Karyawan
             </button>
         </div>
@@ -49,12 +49,18 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${emp.email}"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                             <button class="text-blue-600 hover:underline font-medium" 
-                                    th:onclick="prepareEmployeeModal('modalEmployee', 'detail', [[${emp}]])">Detail</button>
+                                    th:data-id="${emp.id}" th:data-nik="${emp.nik}" th:data-email="${emp.email}"
+                                    th:data-first="${emp.firstName}" th:data-last="${emp.lastName}"
+                                    th:data-job="${emp.jobId}" th:data-dept="${emp.departmentId}" th:data-role="${emp.role}"
+                                    onclick="prepareEmployeeModalByBtn(this, 'detail')">Detail</button>
                             <button class="text-amber-600 hover:underline font-medium" 
-                                    th:onclick="prepareEmployeeModal('modalEmployee', 'edit', [[${emp}]])">Edit</button>
-                            <form th:action="@{/employees/delete/{id}(id=${emp.id})}" method="post" class="inline">
-                                <button type="submit" class="text-red-500 hover:underline font-medium" 
-                                        onclick="return confirm('Hapus karyawan ini?')">Hapus</button>
+                                    th:data-id="${emp.id}" th:data-nik="${emp.nik}" th:data-email="${emp.email}"
+                                    th:data-first="${emp.firstName}" th:data-last="${emp.lastName}"
+                                    th:data-job="${emp.jobId}" th:data-dept="${emp.departmentId}" th:data-role="${emp.role}"
+                                    onclick="prepareEmployeeModalByBtn(this, 'edit')">Edit</button>
+                            <form th:id="'deleteForm' + ${emp.id}" th:action="@{/employees/delete/{id}(id=${emp.id})}" method="post" class="inline">
+                                <button type="button" class="text-red-500 hover:underline font-medium" 
+                                        th:onclick="'confirmAction(\'deleteForm' + ${emp.id} + '\', \'Hapus Karyawan?\', \'Semua data terkait karyawan ini akan dihapus permanen.\', \'error\')'">Hapus</button>
                             </form>
                         </td>
                     </tr>
@@ -67,72 +73,107 @@
 
         <!-- Modal Employee -->
         <div id="modalEmployee" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100] px-4">
-            <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto border border-white">
-                <h3 id="modalTitle" class="text-2xl font-black mb-8 text-gray-900 tracking-tight">Karyawan</h3>
-                <form th:action="@{/employees}" method="post" class="space-y-6">
-                    <input type="hidden" name="id" id="empId">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">NIK</label>
-                            <input type="text" name="nik" id="empNik" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all outline-none">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden flex flex-col relative border border-white max-h-[90vh]">
+                <!-- Sticky Close Button -->
+                <button type="button" onclick="closeModal('modalEmployee')" 
+                        class="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors z-[120] p-2 hover:bg-gray-50 rounded-full">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div class="p-10 overflow-y-auto custom-scrollbar">
+                    <h3 id="modalTitle" class="text-2xl font-black mb-8 text-gray-900 tracking-tight">Karyawan</h3>
+                    <form id="formEmployee" th:action="@{/employees}" method="post" class="space-y-6">
+                        <input type="hidden" name="id" id="empId">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">NIK</label>
+                                <input type="text" name="nik" id="empNik" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+                                <input type="email" name="email" id="empEmail" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all outline-none">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
-                            <input type="email" name="email" id="empEmail" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all outline-none">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Depan</label>
+                                <input type="text" name="firstName" id="empFirstName" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Belakang</label>
+                                <input type="text" name="lastName" id="empLastName" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                            </div>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Depan</label>
-                            <input type="text" name="firstName" id="empFirstName" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Jabatan</label>
+                                <select name="jobId" id="empJob" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl appearance-none">
+                                    <option value="">Pilih Jabatan</option>
+                                    <option th:each="j : ${jobs}" th:value="${j.id}" th:text="${j.title}"></option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Departemen</label>
+                                <select name="departmentId" id="empDept" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl appearance-none">
+                                    <option value="">Pilih Departemen</option>
+                                    <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}"></option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nama Belakang</label>
-                            <input type="text" name="lastName" id="empLastName" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="authFields">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Role Akses</label>
+                                <select name="role" id="empRole" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                                    <option value="EMPLOYEE">Karyawan</option>
+                                    <option value="ADMIN">Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+                                <input type="password" name="password" id="empPassword" placeholder="••••••••" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+                            </div>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Jabatan</label>
-                            <select name="jobId" id="empJob" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl appearance-none">
-                                <option value="">Pilih Jabatan</option>
-                                <option th:each="j : ${jobs}" th:value="${j.id}" th:text="${j.title}"></option>
-                            </select>
+                        <div class="flex justify-end space-x-4 pt-8">
+                            <button type="button" onclick="closeModal('modalEmployee')" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700 transition-all">Batal</button>
+                            <button type="button" onclick="submitEmployeeForm()" id="btnSubmit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
+                                SIMPAN KARYAWAN
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Departemen</label>
-                            <select name="departmentId" id="empDept" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl appearance-none">
-                                <option value="">Pilih Departemen</option>
-                                <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}"></option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="authFields">
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Role Akses</label>
-                            <select name="role" id="empRole" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
-                                <option value="EMPLOYEE">Karyawan</option>
-                                <option value="ADMIN">Admin</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
-                            <input type="password" name="password" id="empPassword" placeholder="••••••••" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl">
-                        </div>
-                    </div>
-                    <div class="flex justify-end space-x-4 pt-8">
-                        <button type="button" onclick="closeModal('modalEmployee')" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700 transition-all">Batal</button>
-                        <button type="submit" id="btnSubmit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
-                            SIMPAN KARYAWAN
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <script th:inline="javascript">
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Escape Key Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal('modalEmployee');
+        });
+
+        function submitEmployeeForm() {
+            const isEdit = document.getElementById('empId').value !== '';
+            confirmAction('formEmployee', 
+                isEdit ? 'Ubah Data Karyawan?' : 'Tambah Karyawan Baru?', 
+                isEdit ? 'Perubahan pada data karyawan ini akan disimpan.' : 'Data karyawan baru akan ditambahkan ke sistem.',
+                'question');
+        }
+
+        function prepareEmployeeModalByBtn(btn, mode) {
+            const data = {
+                id: btn.getAttribute('data-id'),
+                nik: btn.getAttribute('data-nik'),
+                email: btn.getAttribute('data-email'),
+                firstName: btn.getAttribute('data-first'),
+                lastName: btn.getAttribute('data-last'),
+                jobId: btn.getAttribute('data-job'),
+                departmentId: btn.getAttribute('data-dept'),
+                role: btn.getAttribute('data-role')
+            };
+            prepareEmployeeModal('modalEmployee', mode, data);
+        }
 
         function prepareEmployeeModal(modalId, mode, data) {
             const modal = document.getElementById(modalId);

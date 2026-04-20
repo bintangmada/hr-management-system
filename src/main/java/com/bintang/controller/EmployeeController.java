@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/employees")
@@ -27,19 +28,42 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public String saveEmployee(@ModelAttribute Employee employee) {
+    public String saveEmployee(@ModelAttribute Employee employee, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = (employee.getId() == null);
         employeeRepository.save(employee);
+        
+        // Fetch Admin Info
+        Long adminId = (Long) request.getAttribute("employeeId");
+        String role = (String) request.getAttribute("role");
+        Employee admin = employeeRepository.findById(adminId).orElse(null);
+
         String actionMsg = isNew ? "Menambahkan" : "Mengubah";
-        auditService.log(isNew ? "CREATE_EMPLOYEE" : "UPDATE_EMPLOYEE", "Admin", "Employee", employee.getId(), 
-                actionMsg + " Karyawan: " + employee.getFirstName() + " " + employee.getLastName());
-        return "redirect:/employees?success";
+        if (admin != null) {
+            auditService.log(isNew ? "CREATE_EMPLOYEE" : "UPDATE_EMPLOYEE", role, 
+                admin.getFirstName() + " " + admin.getLastName(), admin.getNik(), 
+                "Employee", employee.getId(), actionMsg + " Karyawan: " + employee.getFirstName());
+        }
+        
+        redirectAttributes.addFlashAttribute("successMessage", 
+            "Karyawan '" + employee.getFirstName() + "' berhasil " + (isNew ? "ditambahkan" : "diperbarui") + "!");
+            
+        return "redirect:/employees";
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteEmployee(@PathVariable Long id) {
+    public String deleteEmployee(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         employeeRepository.deleteById(id);
-        auditService.log("DELETE_EMPLOYEE", "Admin", "Employee", id, "Menghapus Karyawan ID: " + id);
-        return "redirect:/employees?deleted";
+        
+        // Fetch Admin Info
+        Long adminId = (Long) request.getAttribute("employeeId");
+        String role = (String) request.getAttribute("role");
+        Employee admin = employeeRepository.findById(adminId).orElse(null);
+
+        if (admin != null) {
+            auditService.log("DELETE_EMPLOYEE", role, admin.getFirstName() + " " + admin.getLastName(), admin.getNik(), 
+                "Employee", id, "Menghapus Karyawan ID: " + id);
+        }
+        redirectAttributes.addFlashAttribute("successMessage", "Data karyawan berhasil dihapus!");
+        return "redirect:/employees";
     }
 }

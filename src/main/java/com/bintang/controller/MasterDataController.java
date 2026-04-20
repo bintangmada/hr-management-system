@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/settings/master-data")
@@ -54,67 +55,75 @@ public class MasterDataController {
 
     // SAVE ACTIONS
     @PostMapping("/regions")
-    public String saveRegion(@ModelAttribute Region region) {
+    public String saveRegion(@ModelAttribute Region region, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = (region.getId() == null);
         regionRepository.save(region);
-        auditService.log(isNew ? "CREATE_REGION" : "UPDATE_REGION", "Admin", "Region", region.getId(), 
+        auditService.logWithContext(request, isNew ? "CREATE_REGION" : "UPDATE_REGION", "Region", region.getId(), 
             (isNew ? "Menambahkan" : "Mengubah") + " Region: " + region.getName());
-        return "redirect:/settings/master-data/regions?success";
+        redirectAttributes.addFlashAttribute("successMessage", "Region berhasil " + (isNew ? "disimpan" : "diperbarui") + "!");
+        return "redirect:/settings/master-data/regions";
     }
 
     @PostMapping("/jobs")
-    public String saveJob(@ModelAttribute Job job) {
+    public String saveJob(@ModelAttribute Job job, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = !jobRepository.existsById(job.getId());
         jobRepository.save(job);
-        auditService.log(isNew ? "CREATE_JOB" : "UPDATE_JOB", "Admin", "Job", null, 
+        auditService.logWithContext(request, isNew ? "CREATE_JOB" : "UPDATE_JOB", "Job", null, 
             (isNew ? "Menambahkan" : "Mengubah") + " Jabatan: " + job.getTitle());
-        return "redirect:/settings/master-data/jobs?success";
+        redirectAttributes.addFlashAttribute("successMessage", "Jabatan berhasil " + (isNew ? "disimpan" : "diperbarui") + "!");
+        return "redirect:/settings/master-data/jobs";
     }
 
     @PostMapping("/locations")
-    public String saveLocation(@ModelAttribute Location location) {
+    public String saveLocation(@ModelAttribute Location location, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = (location.getId() == null);
         locationRepository.save(location);
-        auditService.log(isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION", "Admin", "Location", location.getId(), 
+        auditService.logWithContext(request, isNew ? "CREATE_LOCATION" : "UPDATE_LOCATION", "Location", location.getId(), 
             (isNew ? "Menambahkan" : "Mengubah") + " Lokasi Cabang: " + location.getCity());
-        return "redirect:/settings/master-data/locations?success";
+        redirectAttributes.addFlashAttribute("successMessage", "Lokasi berhasil " + (isNew ? "disimpan" : "diperbarui") + "!");
+        return "redirect:/settings/master-data/locations";
     }
 
     @PostMapping("/departments")
-    public String saveDepartment(@ModelAttribute Department dept) {
+    public String saveDepartment(@ModelAttribute Department dept, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         boolean isNew = (dept.getId() == null);
         departmentRepository.save(dept);
-        auditService.log(isNew ? "CREATE_DEPARTMENT" : "UPDATE_DEPARTMENT", "Admin", "Department", dept.getId(), 
+        auditService.logWithContext(request, isNew ? "CREATE_DEPARTMENT" : "UPDATE_DEPARTMENT", "Department", dept.getId(), 
             (isNew ? "Menambahkan" : "Mengubah") + " Departemen: " + dept.getName());
-        return "redirect:/settings/master-data/departments?success";
+        redirectAttributes.addFlashAttribute("successMessage", "Departemen berhasil " + (isNew ? "disimpan" : "diperbarui") + "!");
+        return "redirect:/settings/master-data/departments";
     }
 
     // DELETE ACTIONS
     @PostMapping("/regions/delete/{id}")
-    public String deleteRegion(@PathVariable Long id) {
+    public String deleteRegion(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         regionRepository.deleteById(id);
-        auditService.log("DELETE_REGION", "Admin", "Region", id, "Menghapus Region ID: " + id);
-        return "redirect:/settings/master-data/regions?deleted";
+        auditService.logWithContext(request, "DELETE_REGION", "Region", id, "Menghapus Region ID: " + id);
+        redirectAttributes.addFlashAttribute("successMessage", "Region berhasil dihapus!");
+        return "redirect:/settings/master-data/regions";
     }
 
     @PostMapping("/jobs/delete/{id}")
-    public String deleteJob(@PathVariable String id) {
+    public String deleteJob(@PathVariable String id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         jobRepository.deleteById(id);
-        auditService.log("DELETE_JOB", "Admin", "Job", null, "Menghapus Jabatan ID: " + id);
-        return "redirect:/settings/master-data/jobs?deleted";
+        auditService.logWithContext(request, "DELETE_JOB", "Job", null, "Menghapus Jabatan ID: " + id);
+        redirectAttributes.addFlashAttribute("successMessage", "Jabatan berhasil dihapus!");
+        return "redirect:/settings/master-data/jobs";
     }
 
     @PostMapping("/locations/delete/{id}")
-    public String deleteLocation(@PathVariable Long id) {
+    public String deleteLocation(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         locationRepository.deleteById(id);
-        auditService.log("DELETE_LOCATION", "Admin", "Location", id, "Menghapus Lokasi Cabang ID: " + id);
-        return "redirect:/settings/master-data/locations?deleted";
+        auditService.logWithContext(request, "DELETE_LOCATION", "Location", id, "Menghapus Lokasi Cabang ID: " + id);
+        redirectAttributes.addFlashAttribute("successMessage", "Lokasi berhasil dihapus!");
+        return "redirect:/settings/master-data/locations";
     }
 
     @PostMapping("/departments/delete/{id}")
-    public String deleteDepartment(@PathVariable Long id) {
+    public String deleteDepartment(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request, RedirectAttributes redirectAttributes) {
         departmentRepository.deleteById(id);
-        auditService.log("DELETE_DEPARTMENT", "Admin", "Department", id, "Menghapus Departemen ID: " + id);
-        return "redirect:/settings/master-data/departments?deleted";
+        auditService.logWithContext(request, "DELETE_DEPARTMENT", "Department", id, "Menghapus Departemen ID: " + id);
+        redirectAttributes.addFlashAttribute("successMessage", "Departemen berhasil dihapus!");
+        return "redirect:/settings/master-data/departments";
     }
 }

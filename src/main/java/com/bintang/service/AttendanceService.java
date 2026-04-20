@@ -52,7 +52,7 @@ public class AttendanceService {
         return attendanceRepository.findTodayAttendance(employeeId, startOfDay, endOfDay).orElse(null);
     }
 
-    public void checkIn(Long employeeId, double lat, double lng) {
+    public void checkIn(Long employeeId, String role, double lat, double lng) {
         List<AttendanceLocation> locations = locationRepository.findAll();
         boolean isWithinGeo = false;
         String locationName = "DILUAR_AREA";
@@ -67,30 +67,36 @@ public class AttendanceService {
         
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
-        attendance.setCheckInTime(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        attendance.setCheckInTime(now);
         attendance.setLatitude(lat);
         attendance.setLongitude(lng);
         attendance.setIsWithinGeo(isWithinGeo);
-        attendance.setStatus(isWithinGeo ? "HADIR (" + locationName + ")" : "DILUAR_AREA");
+        
+        // Late calculation (e.g., > 09:00 AM)
+        boolean isLate = now.toLocalTime().isAfter(java.time.LocalTime.of(9, 0));
+        attendance.setIsLate(isLate);
+        
+        attendance.setStatus(isWithinGeo ? (isLate ? "TERLAMBAT" : "HADIR") + " (" + locationName + ")" : "DILUAR_AREA");
         
         attendanceRepository.save(attendance);
 
         // Add Audit Log
         employeeRepository.findById(employeeId).ifPresent(emp -> {
-            auditService.log("CHECK_IN", emp.getFirstName(), "Attendance", attendance.getId(), 
-                "Check-in: " + emp.getFirstName() + " (" + attendance.getStatus() + ")");
+            auditService.log("CHECK_IN", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
+                "Attendance", attendance.getId(), "Check-in: (" + attendance.getStatus() + ")");
         });
     }
 
-    public void checkOut(Long attendanceId, double lat, double lng) {
+    public void checkOut(Long attendanceId, String role, double lat, double lng) {
         Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow();
         attendance.setCheckOutTime(LocalDateTime.now());
         attendanceRepository.save(attendance);
 
         // Add Audit Log
         employeeRepository.findById(attendance.getEmployeeId()).ifPresent(emp -> {
-            auditService.log("CHECK_OUT", emp.getFirstName(), "Attendance", attendance.getId(), 
-                "Check-out: " + emp.getFirstName());
+            auditService.log("CHECK_OUT", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
+                "Attendance", attendance.getId(), "Check-out dilakukan");
         });
     }
 
