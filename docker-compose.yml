@@ -25,8 +25,8 @@ services:
       - "8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/hr_management_system_db?useSSL=false&serverTimezone=Asia/Jakarta&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=bintangmada
+      - SPRING_DATASOURCE_USERNAME=xxxx
+      - SPRING_DATASOURCE_PASSWORD=yyyy
     depends_on:
       db:
         condition: service_healthy
