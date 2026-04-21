@@ -96,11 +96,11 @@ public class InitialDataSeeder {
         AppMenu settings = getOrSaveMenu("Pengaturan", "fas fa-cog", "#", "ADMIN", 99, null);
         
         // Settings Sub-menus
-        getOrSaveMenu("Kehadiran & Geofencing", "fas fa-map-marker-alt", "/settings/attendance", "ADMIN", 1, settings.getId());
-        getOrSaveMenu("Master Jam Kerja", "fas fa-clock", "/settings/work-hours", "ADMIN", 2, settings.getId());
-        getOrSaveMenu("Master Lokasi Absen", "fas fa-building", "/settings/attendance-locations", "ADMIN", 3, settings.getId());
-        getOrSaveMenu("Manajemen Menu", "fas fa-list", "/settings/menu-management", "ADMIN", 4, settings.getId());
-        getOrSaveMenu("Data Master Org", "fas fa-database", "/settings/master-data", "ADMIN", 5, settings.getId());
+//        getOrSaveMenu("Kehadiran & Geofencing", "fas fa-map-marker-alt", "/settings/attendance", "ADMIN", 1, settings.getId());
+//        getOrSaveMenu("Master Jam Kerja", "fas fa-clock", "/settings/work-hours", "ADMIN", 2, settings.getId());
+//        getOrSaveMenu("Master Lokasi Absen", "fas fa-building", "/settings/attendance-locations", "ADMIN", 3, settings.getId());
+//        getOrSaveMenu("Manajemen Menu", "fas fa-list", "/settings/menu-management", "ADMIN", 4, settings.getId());
+//        getOrSaveMenu("Data Master Org", "fas fa-database", "/settings/master-data", "ADMIN", 5, settings.getId());
     }
 
     private AppMenu getOrSaveMenu(String title, String icon, String url, String role, int order, Long parentId) {

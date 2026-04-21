@@ -44,8 +44,10 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${emp.jobId}"></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${emp.departmentId}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" 
+                            th:text="${emp.job != null ? emp.job.title : emp.jobId}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" 
+                            th:text="${emp.department != null ? emp.department.name : emp.departmentId}"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${emp.email}"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                             <button class="text-blue-600 hover:underline font-medium" 

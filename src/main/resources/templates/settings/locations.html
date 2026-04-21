@@ -121,6 +121,9 @@
 
     <script th:inline="javascript">
         var map, drawnItems, drawControl, userMarker;
+        var existingLayersGroup;
+        /*[[${locations}]]*/
+        var allLocations = [[${locations}]];
 
         function initMap() {
             if (map) return;
@@ -129,14 +132,17 @@
 
             drawnItems = new L.FeatureGroup();
             map.addLayer(drawnItems);
+            
+            existingLayersGroup = new L.FeatureGroup();
+            map.addLayer(existingLayersGroup);
 
             drawControl = new L.Control.Draw({
                 edit: { featureGroup: drawnItems },
                 draw: { 
-                    polygon: { shapeOptions: { color: '#2563eb' } }, 
+                    polygon: { shapeOptions: { color: '#2563eb', fillOpacity: 0.4 } }, 
                     marker: false, 
                     circle: false, 
-                    rectangle: { shapeOptions: { color: '#2563eb' } }, 
+                    rectangle: { shapeOptions: { color: '#2563eb', fillOpacity: 0.4 } }, 
                     polyline: false, 
                     circlemarker: false 
                 }
@@ -150,6 +156,35 @@
             });
             map.on(L.Draw.Event.EDITED, updatePolygonInput);
             map.on(L.Draw.Event.DELETED, updatePolygonInput);
+        }
+
+        function renderExistingLocations(excludeId) {
+            if (!existingLayersGroup) return;
+            existingLayersGroup.clearLayers();
+            
+            allLocations.forEach(function(loc) {
+                if (loc.id == excludeId) return;
+                
+                if (loc.polygonJson && loc.polygonJson !== '[]') {
+                    try {
+                        var coords = JSON.parse(loc.polygonJson);
+                        var poly = L.polygon(coords, {
+                            color: '#94a3b8',
+                            weight: 2,
+                            dashArray: '5, 5',
+                            fillColor: '#94a3b8',
+                            fillOpacity: 0.1,
+                            interactive: true
+                        }).addTo(existingLayersGroup);
+                        
+                        poly.bindTooltip(loc.name, {
+                            permanent: false,
+                            direction: 'center',
+                            className: 'font-black text-[10px] text-slate-500 uppercase tracking-tighter'
+                        });
+                    } catch(e) { console.error("Error parsing polygon for location: " + loc.name, e); }
+                }
+            });
         }
 
         // Escape Key Listener
@@ -185,9 +220,18 @@
         function updatePolygonInput() {
             var layers = drawnItems.getLayers();
             if (layers.length > 0) {
-                var latlngs = layers[0].getLatLngs()[0];
-                var data = latlngs.map(ll => [ll.lat, ll.lng]);
-                document.getElementById('polygonInput').value = JSON.stringify(data);
+                var layer = layers[0];
+                var latlngs;
+                if (layer instanceof L.Polygon) {
+                    latlngs = layer.getLatLngs()[0];
+                } else if (layer instanceof L.Rectangle) {
+                    latlngs = layer.getLatLngs()[0];
+                }
+                
+                if (latlngs) {
+                    var data = latlngs.map(ll => [ll.lat, ll.lng]);
+                    document.getElementById('polygonInput').value = JSON.stringify(data);
+                }
             } else {
                 document.getElementById('polygonInput').value = '[]';
             }
@@ -204,7 +248,8 @@
             setTimeout(function() {
                 initMap();
                 drawnItems.clearLayers();
-                try { if(!map.hasLayer(drawControl)) map.addControl(drawControl); } catch(e) {}
+                renderExistingLocations(null); // Show all existing
+                if(!map.hasLayer(drawControl)) map.addControl(drawControl);
                 map.invalidateSize();
             }, 100);
         }
@@ -241,12 +286,15 @@
             setTimeout(function() {
                 initMap();
                 drawnItems.clearLayers();
+                renderExistingLocations(id); // Exclude current ID
                 if (map && !map.hasLayer(drawControl)) map.addControl(drawControl);
 
                 if (polygonJson && polygonJson !== '[]') {
-                    var coords = JSON.parse(polygonJson);
-                    var poly = L.polygon(coords, {color: '#2563eb'}).addTo(drawnItems);
-                    map.fitBounds(poly.getBounds());
+                    try {
+                        var coords = JSON.parse(polygonJson);
+                        var poly = L.polygon(coords, {color: '#2563eb', fillOpacity: 0.4}).addTo(drawnItems);
+                        map.fitBounds(poly.getBounds());
+                    } catch(e) {}
                 }
                 map.invalidateSize();
             }, 100);

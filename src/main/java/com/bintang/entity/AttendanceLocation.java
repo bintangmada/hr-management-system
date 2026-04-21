@@ -25,6 +25,7 @@ public class AttendanceLocation {
     
     private String minCheckInTime;
     private String minCheckOutTime;
+    private String targetStartTime;
     
     private String description;
 }
