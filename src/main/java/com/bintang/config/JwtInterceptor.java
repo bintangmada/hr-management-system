@@ -23,6 +23,9 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Autowired
     private com.bintang.repository.AppNotificationRepository notificationRepository;
 
+    @Autowired
+    private com.bintang.repository.EmployeeRepository employeeRepository;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String token = null;
@@ -115,6 +118,11 @@ public class JwtInterceptor implements HandlerInterceptor {
             
             modelAndView.addObject("recentNotifications", recentNotifications);
             modelAndView.addObject("unreadCount", unreadCount);
+
+            // Fetch Employee Name for Avatar
+            employeeRepository.findByNik(currentNik).ifPresent(emp -> {
+                modelAndView.addObject("employeeName", emp.getFirstName() + " " + emp.getLastName());
+            });
         }
     }
 

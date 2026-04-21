@@ -25,6 +25,8 @@ public class SettingController {
     public String attendanceSettings(Model model) {
         model.addAttribute("officePolygon", settingService.getSettingValue("OFFICE_POLYGON", "[]"));
         model.addAttribute("officeRadius", settingService.getSettingValue("OFFICE_RADIUS", "100"));
+        model.addAttribute("minCheckInTime", settingService.getSettingValue("MIN_CHECKIN_TIME", "07:00"));
+        model.addAttribute("minCheckOutTime", settingService.getSettingValue("MIN_CHECKOUT_TIME", "16:00"));
         model.addAttribute("content", "settings/attendance");
         return "layout";
     }
@@ -33,13 +35,17 @@ public class SettingController {
     public String saveAttendanceSettings(
             @RequestParam String officePolygon,
             @RequestParam String officeRadius,
+            @RequestParam String minCheckInTime,
+            @RequestParam String minCheckOutTime,
             jakarta.servlet.http.HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
         
         settingService.updateSetting("OFFICE_POLYGON", officePolygon, "Area polygon lokasi kantor (GeoJSON/Points)");
         settingService.updateSetting("OFFICE_RADIUS", officeRadius, "Radius kehadiran dalam meter");
+        settingService.updateSetting("MIN_CHECKIN_TIME", minCheckInTime, "Jam paling awal diperbolehkan check-in (24h)");
+        settingService.updateSetting("MIN_CHECKOUT_TIME", minCheckOutTime, "Jam paling awal diperbolehkan check-out (24h)");
         
-        auditService.logWithContext(request, "UPDATE_SETTING", "Setting", null, "Mengubah pengaturan geofencing");
+        auditService.logWithContext(request, "UPDATE_SETTING", "Setting", null, "Mengubah pengaturan kehadiran dan jam kerja");
         redirectAttributes.addFlashAttribute("successMessage", "Pengaturan kehadiran berhasil diperbarui!");
         
         return "redirect:/settings/attendance";

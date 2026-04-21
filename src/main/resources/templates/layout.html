@@ -108,7 +108,15 @@
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                     <i class="fas fa-search"></i>
                 </span>
-                <input type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Cari data...">
+                <input type="text" id="globalSearchInput" placeholder="Pencarian Cepat (Ctrl + K)..." 
+                       class="w-full bg-gray-50 border-none rounded-xl pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-100 text-sm transition-all focus:bg-white border-transparent focus:border-blue-200 outline-none">
+                
+                <!-- Search Results Panel -->
+                <div id="searchResultPanel" class="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl hidden z-[100] overflow-hidden backdrop-blur-xl bg-opacity-95">
+                    <div id="searchResultsList" class="max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <!-- Results injected here -->
+                    </div>
+                </div>
             </div>
             <div class="flex items-center space-x-4">
                 <!-- Notifications Dropdown -->
@@ -151,16 +159,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold" th:title="${nik}">
-                        <span th:text="${nik != null && !#strings.isEmpty(nik) ? #strings.substring(nik, 0, 1) : 'U'}">B</span>
+                <div class="flex items-center space-x-4 border-l border-gray-100 pl-6 h-8">
+                    <!-- Avatar with Name Initial -->
+                    <div class="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-blue-100 cursor-pointer hover:scale-105 transition-all" 
+                         th:title="${employeeName != null ? employeeName : nik}">
+                        <span th:text="${employeeName != null && !#strings.isEmpty(employeeName) ? #strings.substring(employeeName, 0, 1) : 'U'}">B</span>
                     </div>
+                    
+                    <!-- Logout -->
+                    <a th:href="@{/logout}" class="flex items-center space-x-2 px-5 py-2.5 text-[10px] font-black text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-2xl transition-all active:scale-95 group">
+                        <i class="fas fa-power-off group-hover:rotate-12 transition-transform"></i>
+                        <span>LOGOUT</span>
+                    </a>
                 </div>
-                <!-- New Navbar Logout -->
-                <a th:href="@{/logout}" class="flex items-center space-x-2 px-4 py-2 text-xs font-black text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-all active:scale-95">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>LOGOUT</span>
-                </a>
             </div>
         </header>
 
@@ -220,15 +231,22 @@
         const errorMessage = document.getElementById('errorMsg').value;
 
         if (successMessage) {
-            Toast.fire({ icon: 'success', title: successMessage });
+            Toast.fire({ 
+                icon: 'success', 
+                title: successMessage,
+                background: '#22c55e', // Vibrant Green
+                color: '#ffffff',      // White Text
+                iconColor: '#ffffff'
+            });
         }
         if (errorMessage) {
-            Swal.fire({ 
+            Toast.fire({ 
                 icon: 'error', 
-                title: 'Terjadi Kesalahan', 
-                text: errorMessage, 
-                confirmButtonColor: '#2563eb', 
-                customClass: { popup: 'rounded-[2rem]' } 
+                title: 'Gagal', 
+                text: errorMessage,
+                background: '#ef4444', // Vibrant Red
+                color: '#ffffff',      // White Text
+                iconColor: '#ffffff'
             });
         }
 
@@ -280,6 +298,104 @@
                 btnText.innerText = "Tutup Menu";
             }
         }
+
+        // Global Search Logic
+        const searchInput = document.getElementById('globalSearchInput');
+        const searchPanel = document.getElementById('searchResultPanel');
+        const searchList = document.getElementById('searchResultsList');
+        let selectedIndex = -1;
+
+        searchInput.addEventListener('input', debounce(async (e) => {
+            const query = e.target.value.trim();
+            if (query.length < 2) {
+                searchPanel.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                renderResults(data);
+            } catch (err) {
+                console.error('Search failed:', err);
+            }
+        }, 300));
+
+        searchInput.addEventListener('keydown', (e) => {
+            const items = searchList.querySelectorAll('.search-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection(items);
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                items[selectedIndex].click();
+            } else if (e.key === 'Escape') {
+                searchPanel.classList.add('hidden');
+                searchInput.blur();
+            }
+        });
+
+        // Shortcut Ctrl+K or Cmd+K
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        function renderResults(data) {
+            if (data.length === 0) {
+                searchList.innerHTML = '<div class="p-4 text-center text-gray-400 text-xs italic">Tidak ada hasil ditemukan</div>';
+            } else {
+                searchList.innerHTML = data.map((item, idx) => `
+                    <a href="${item.url}" class="search-item flex items-center p-4 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0 group">
+                        <div class="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-600 transition-all">
+                            <i class="${item.icon}"></i>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-black text-gray-900">${item.title}</div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${item.subtitle}</div>
+                        </div>
+                        <div class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-chevron-right text-blue-300 text-xs"></i>
+                        </div>
+                    </a>
+                `).join('');
+            }
+            searchPanel.classList.remove('hidden');
+            selectedIndex = -1;
+        }
+
+        function updateSelection(items) {
+            items.forEach((item, idx) => {
+                if (idx === selectedIndex) {
+                    item.classList.add('bg-blue-50', 'ring-2', 'ring-blue-100', 'ring-inset');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-blue-50', 'ring-2', 'ring-blue-100', 'ring-inset');
+                }
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // Close search on click outside
+        window.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchPanel.contains(e.target)) {
+                searchPanel.classList.add('hidden');
+            }
+        });
 
         // Close dropdown when clicking outside
         window.onclick = function(event) {

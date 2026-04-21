@@ -23,5 +23,8 @@ public class AttendanceLocation {
     
     private Integer radius;
     
+    private String minCheckInTime;
+    private String minCheckOutTime;
+    
     private String description;
 }

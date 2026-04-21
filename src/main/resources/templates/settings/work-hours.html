@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body th:fragment="area_konten">
+    <div class="max-w-6xl mx-auto">
+        <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-4xl font-black text-gray-800 tracking-tight leading-none">Master Jam Kerja</h2>
+                <p class="text-gray-500 mt-2">Kelola batasan waktu operasional untuk seluruh unit dan lokasi.</p>
+            </div>
+            <div class="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-2xl">
+                <div class="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest" th:text="${#lists.size(locations)} + ' Lokasi Aktif'"></span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Global Configuration Card -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+                    <div class="p-8 border-b border-gray-100 bg-gradient-to-br from-gray-50 to-white">
+                        <div class="h-14 w-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-4 shadow-lg shadow-gray-200">
+                            <i class="fas fa-globe text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-gray-900 leading-tight">Jam Kerja Standar</h3>
+                        <p class="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Berlaku untuk Seluruh Area</p>
+                    </div>
+                    <div class="p-8">
+                        <form th:action="@{/settings/work-hours/global}" method="post" id="globalForm" class="space-y-6">
+                            <div class="space-y-4">
+                                <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Batas Check-in</label>
+                                    <input type="time" name="minCheckIn" th:value="${globalMinCheckIn}" required
+                                           class="w-full bg-transparent border-none text-2xl font-black text-gray-800 outline-none p-0 focus:ring-0">
+                                </div>
+                                <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Batas Check-out</label>
+                                    <input type="time" name="minCheckOut" th:value="${globalMinCheckOut}" required
+                                           class="w-full bg-transparent border-none text-2xl font-black text-gray-800 outline-none p-0 focus:ring-0">
+                                </div>
+                            </div>
+                            <button type="button" onclick="confirmAction('globalForm', 'Simpan Jam Standar?', 'Perubahan ini akan menjadi fallback untuk semua lokasi.', 'question')" 
+                                    class="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all text-sm uppercase tracking-widest">
+                                UPDATE GLOBAL
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- per-Location Configuration: Grid Mode -->
+            <div class="lg:col-span-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div th:each="loc : ${locations}" class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-gray-100/50 transition-all group">
+                        <div class="p-8 border-b border-gray-50 flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-black text-gray-900 group-hover:text-blue-600 transition-colors" th:text="${loc.name}">Nama Lokasi</h4>
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" th:text="'ID: ' + ${loc.id}"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-8 bg-gray-50/30">
+                            <form th:id="'locForm' + ${loc.id}" th:action="@{/settings/work-hours/location}" method="post">
+                                <input type="hidden" name="locationId" th:value="${loc.id}">
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</label>
+                                        <input type="time" name="minCheckIn" th:value="${loc.minCheckInTime} ?: ${globalMinCheckIn}" required
+                                               class="w-full bg-transparent border-none text-lg font-black text-gray-800 outline-none p-0 focus:ring-0">
+                                    </div>
+                                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-out</label>
+                                        <input type="time" name="minCheckOut" th:value="${loc.minCheckOutTime} ?: ${globalMinCheckOut}" required
+                                               class="w-full bg-transparent border-none text-lg font-black text-gray-800 outline-none p-0 focus:ring-0">
+                                    </div>
+                                </div>
+                                <button type="button" 
+                                        th:data-form-id="'locForm' + ${loc.id}"
+                                        th:data-loc-name="${loc.name}"
+                                        onclick="submitLocationForm(this)"
+                                        class="w-full py-4 rounded-2xl bg-white border border-gray-200 text-gray-400 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all flex items-center justify-center space-x-2">
+                                    <i class="fas fa-save"></i>
+                                    <span>Simpan Perubahan</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div th:if="${#lists.isEmpty(locations)}" class="col-span-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-[3rem] py-24 text-center">
+                        <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <i class="fas fa-map-marked-alt text-3xl text-gray-200"></i>
+                        </div>
+                        <h4 class="text-xl font-black text-gray-900 mb-2">Belum Ada Lokasi</h4>
+                        <p class="text-gray-400 max-w-xs mx-auto">Silakan tambahkan lokasi geofencing terlebih dahulu untuk melakukan kustomisasi jam kerja.</p>
+                        <a href="/settings/attendance-locations" class="inline-block mt-8 text-blue-600 font-black text-sm hover:underline">Kelola Lokasi &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Helper for Safe Submit -->
+    <script th:inline="javascript">
+        function submitLocationForm(btn) {
+            const formId = btn.getAttribute('data-form-id');
+            const locName = btn.getAttribute('data-loc-name');
+            confirmAction(formId, 'Update Jam Lokasi?', 'Aturan khusus untuk ' + locName + ' akan disimpan.', 'question');
+        }
+    </script>
+</body>
+</html>
