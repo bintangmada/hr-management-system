@@ -83,26 +83,41 @@ public class InitialDataSeeder {
     }
 
     private void seedMenus() {
-        if (menuRepository.count() == 0) {
-            // Dashboard
-            menuRepository.save(createMenu("Dashboard", "fas fa-th-large", "/dashboard", "ALL", 1));
-            // Karyawan
-            menuRepository.save(createMenu("Karyawan", "fas fa-users", "/employees", "ADMIN", 2));
-            // Absensi
-            menuRepository.save(createMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", 3));
-            // Payroll
-            menuRepository.save(createMenu("Payroll", "fas fa-money-check-alt", "/payroll", "ADMIN", 6));
-            // Performance
-            menuRepository.save(createMenu("Performa", "fas fa-star", "/performance", "ADMIN", 7));
-            
-            // NEW: Leave Menus
-            menuRepository.save(createMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4));
-            menuRepository.save(createMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5));
-        } else {
-            // Ensure Leave menus exist if others exist
-            checkAndAddMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4);
-            checkAndAddMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5);
-        }
+        // Top Level Menus
+        getOrSaveMenu("Dashboard", "fas fa-th-large", "/dashboard", "ALL", 1, null);
+        getOrSaveMenu("Karyawan", "fas fa-users", "/employees", "ADMIN", 2, null);
+        getOrSaveMenu("Absensi Digital", "fas fa-fingerprint", "/attendance", "ALL", 3, null);
+        getOrSaveMenu("Pengajuan Cuti", "fas fa-calendar-plus", "/leaves", "ALL", 4, null);
+        getOrSaveMenu("Manajemen Cuti", "fas fa-tasks", "/leaves/manage", "ALL", 5, null);
+        getOrSaveMenu("Payroll", "fas fa-money-check-alt", "/payroll", "ADMIN", 6, null);
+        getOrSaveMenu("Performa", "fas fa-star", "/performance", "ADMIN", 7, null);
+        
+        // Parent Settings Menu
+        AppMenu settings = getOrSaveMenu("Pengaturan", "fas fa-cog", "#", "ADMIN", 99, null);
+        
+        // Settings Sub-menus
+        getOrSaveMenu("Kehadiran & Geofencing", "fas fa-map-marker-alt", "/settings/attendance", "ADMIN", 1, settings.getId());
+        getOrSaveMenu("Master Jam Kerja", "fas fa-clock", "/settings/work-hours", "ADMIN", 2, settings.getId());
+        getOrSaveMenu("Master Lokasi Absen", "fas fa-building", "/settings/attendance-locations", "ADMIN", 3, settings.getId());
+        getOrSaveMenu("Manajemen Menu", "fas fa-list", "/settings/menu-management", "ADMIN", 4, settings.getId());
+        getOrSaveMenu("Data Master Org", "fas fa-database", "/settings/master-data", "ADMIN", 5, settings.getId());
+    }
+
+    private AppMenu getOrSaveMenu(String title, String icon, String url, String role, int order, Long parentId) {
+        return menuRepository.findAll().stream()
+                .filter(m -> m.getUrl().equals(url) && (title.equals(m.getTitle())))
+                .findFirst()
+                .orElseGet(() -> {
+                    AppMenu m = new AppMenu();
+                    m.setTitle(title);
+                    m.setIcon(icon);
+                    m.setUrl(url);
+                    m.setRoleRequired(role);
+                    m.setSortOrder(order);
+                    m.setParentId(parentId);
+                    m.setIsActive(true);
+                    return menuRepository.save(m);
+                });
     }
 
     private AppMenu createMenu(String title, String icon, String url, String role, int order) {
@@ -112,13 +127,7 @@ public class InitialDataSeeder {
         m.setUrl(url);
         m.setRoleRequired(role);
         m.setSortOrder(order);
+        m.setIsActive(true);
         return m;
-    }
-
-    private void checkAndAddMenu(String title, String icon, String url, String role, int order) {
-        boolean exists = menuRepository.findAll().stream().anyMatch(m -> m.getUrl().equals(url));
-        if (!exists) {
-            menuRepository.save(createMenu(title, icon, url, role, order));
-        }
     }
 }

@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AttendanceService {
@@ -25,6 +27,12 @@ public class AttendanceService {
 
     @Autowired
     private com.bintang.repository.EmployeeRepository employeeRepository;
+
+    @Autowired
+    private SettingService settingService;
+
+    @Autowired
+    private AppNotificationService notificationService;
 
     public boolean isPointInPolygon(double lat, double lng, String polygonJson) {
         if (polygonJson == null || polygonJson.equals("[]")) return false;
@@ -81,8 +89,34 @@ public class AttendanceService {
         
         attendanceRepository.save(attendance);
 
-        // Add Audit Log
+        // --- VALIDATION AND NOTIFICATION ---
+        
+        // Find which location matched (if any)
+        AttendanceLocation currentLoc = locations.stream()
+                .filter(l -> isPointInPolygon(lat, lng, l.getPolygonJson()))
+                .findFirst()
+                .orElse(null);
+
         employeeRepository.findById(employeeId).ifPresent(emp -> {
+            try {
+                // 1. Determine Min Check-in Time (Location Specific OR Global)
+                String minTimeStr = (currentLoc != null && currentLoc.getMinCheckInTime() != null && !currentLoc.getMinCheckInTime().isBlank()) 
+                                    ? currentLoc.getMinCheckInTime() 
+                                    : settingService.getSettingValue("MIN_CHECKIN_TIME", "07:00");
+                
+                LocalTime minTime = LocalTime.parse(minTimeStr);
+                if (now.toLocalTime().isBefore(minTime)) {
+                    String locNameMsg = (currentLoc != null) ? " di " + currentLoc.getName() : "";
+                    notificationService.send(emp.getNik(), "Peringatan Check-in Awal", 
+                        "Anda melakukan check-in pada " + now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
+                        ". Jam minimal check-in yang diizinkan adalah " + minTimeStr + ".", 
+                        "/attendance");
+                }
+            } catch (Exception e) {
+                // Ignore if setting is invalid
+            }
+
+            // Add Audit Log
             auditService.log("CHECK_IN", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
                 "Attendance", attendance.getId(), "Check-in: (" + attendance.getStatus() + ")");
         });
@@ -93,8 +127,35 @@ public class AttendanceService {
         attendance.setCheckOutTime(LocalDateTime.now());
         attendanceRepository.save(attendance);
 
-        // Add Audit Log
+        // --- VALIDATION AND NOTIFICATION ---
+        
+        // Find which location matched (based on current coordinates)
+        AttendanceLocation currentLoc = locationRepository.findAll().stream()
+                .filter(l -> isPointInPolygon(lat, lng, l.getPolygonJson()))
+                .findFirst()
+                .orElse(null);
+
         employeeRepository.findById(attendance.getEmployeeId()).ifPresent(emp -> {
+            try {
+                // 1. Determine Min Check-out Time (Location Specific OR Global)
+                String minTimeStr = (currentLoc != null && currentLoc.getMinCheckOutTime() != null && !currentLoc.getMinCheckOutTime().isBlank()) 
+                                    ? currentLoc.getMinCheckOutTime() 
+                                    : settingService.getSettingValue("MIN_CHECKOUT_TIME", "16:00");
+                
+                LocalTime minTime = LocalTime.parse(minTimeStr);
+                LocalDateTime now = LocalDateTime.now();
+                if (now.toLocalTime().isBefore(minTime)) {
+                    String locNameMsg = (currentLoc != null) ? " di " + currentLoc.getName() : "";
+                    notificationService.send(emp.getNik(), "Peringatan Check-out Awal", 
+                        "Anda melakukan check-out pada " + now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
+                        ". Jam minimal pulang yang diizinkan adalah " + minTimeStr + ".", 
+                        "/attendance");
+                }
+            } catch (Exception e) {
+                // Ignore if setting is invalid
+            }
+
+            // Add Audit Log
             auditService.log("CHECK_OUT", role, emp.getFirstName() + " " + emp.getLastName(), emp.getNik(), 
                 "Attendance", attendance.getId(), "Check-out dilakukan");
         });
