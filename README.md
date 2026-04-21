@@ -19,10 +19,12 @@ A robust, full-stack Human Resource Management System built with **Spring Boot 3
 ### 3. Employee & Attendance Lifecycle
 - **Real-time Dashboard**: Live tracking of late arrivals and employees on leave.
 - **Geofenced Check-in/Out**: Validates employee location against office boundaries.
-- **Work Hour Management**: Flexible configuration for different shifts and schedules.
 
-### 4. Admin Analytics
-- Comprehensive summary cards for total employees, attendance rates, and leave status.
+### 4. Advanced Reporting & Export
+- **Attendance History**: Centralized interface for Admins to view global attendance logs.
+- **Flexible Filters**: Filter reports by **Date Range**, **NIK**, or **Employee Name**.
+- **Professional Exports**: Generate high-fidelity **Excel (XLSX)** and **PDF** reports for auditing and payroll purposes.
+- **Data Validation**: Visual indicators for geofence validity and status (Hadir, Terlambat, Outside Area).
 
 ---
 
@@ -32,6 +34,7 @@ A robust, full-stack Human Resource Management System built with **Spring Boot 3
 - **Database**: MySQL 8
 - **Frontend**: Thymeleaf, Tailwind CSS, Javascript (ES6)
 - **Mapping**: Leaflet.js & Leaflet Draw
+- **Exporting**: Apache POI (Excel) & OpenPDF (PDF)
 - **Icons**: FontAwesome 6
 
 ---

@@ -20,7 +20,11 @@ public class Attendance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    private Long employeeId; // Manual relationship
+    @jakarta.persistence.ManyToOne
+    @jakarta.persistence.JoinColumn(name = "employeeId", insertable = false, updatable = false)
+    private Employee employee;
+
+    private Long employeeId; 
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private String status; // e.g., PRESENT, LATE, ABSENT
