@@ -26,17 +26,6 @@ A robust, full-stack Human Resource Management System built with **Spring Boot 3
 
 ---
 
-## 📸 Screenshots
-
-| Feature | Preview |
-| :--- | :--- |
-| **Login Experience** | ![Login Screen](docs/images/login_screen.png) |
-| **Admin Dashboard** | ![Dashboard](docs/images/dashboard.png) |
-| **Geofence Mapping** | ![Geofencing](docs/images/geofence.png) |
-| **Location List** | ![Location Management](docs/images/locations_list.png) |
-
----
-
 ## 🛠️ Technology Stack
 
 - **Backend**: Java 17+, Spring Boot 3, Spring Data JPA
