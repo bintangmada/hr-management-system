@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body th:fragment="area_konten">
+    <div class="h-full flex flex-col">
+        <!-- Header -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <h2 class="text-3xl font-black text-gray-900 tracking-tight">Laporan Kehadiran</h2>
+                <p class="text-gray-500 font-medium">Rekapitulasi data absensi seluruh karyawan.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <a th:href="@{/settings/attendance-report/excel(startDate=${startDate}, endDate=${endDate}, search=${search != null ? search : ''})}" 
+                   class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-green-700 transition-all active:scale-95 text-xs uppercase tracking-widest">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a>
+                <a th:href="@{/settings/attendance-report/pdf(startDate=${startDate}, endDate=${endDate}, search=${search != null ? search : ''})}" 
+                   class="flex items-center gap-2 bg-rose-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95 text-xs uppercase tracking-widest">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 mb-8">
+            <form th:action="@{/settings/attendance-report}" method="get" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dari Tanggal</label>
+                    <input type="date" name="startDate" th:value="${startDate}" 
+                           class="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Hingga Tanggal</label>
+                    <input type="date" name="endDate" th:value="${endDate}" 
+                           class="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Pencarian Nama/NIK</label>
+                    <input type="text" name="search" th:value="${search}" placeholder="Cari..."
+                           class="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95">
+                        <i class="fas fa-filter mr-2"></i> Filter
+                    </button>
+                    <a th:href="@{/settings/attendance-report}" class="px-5 py-3 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-all">
+                        <i class="fas fa-undo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table Data -->
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex-1">
+            <div class="overflow-x-auto h-full">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50/50 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Karyawan</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Waktu</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Geofence</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <tr th:each="att : ${history}" class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="px-8 py-6">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black mr-4" 
+                                         th:text="${#strings.substring(att.employee.firstName, 0, 1)}"></div>
+                                    <div>
+                                        <div class="font-black text-gray-900" th:text="${att.employee.firstName + ' ' + att.employee.lastName}">Nama</div>
+                                        <div class="text-[10px] font-bold text-gray-400 tracking-widest uppercase" th:text="${att.employee.nik}">NIK</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6">
+                                <div class="font-bold text-gray-800" th:text="${#temporals.format(att.checkInTime, 'dd MMM yyyy')}"></div>
+                                <div class="text-xs text-gray-400 flex items-center gap-1">
+                                    <span th:text="${#temporals.format(att.checkInTime, 'HH:mm')}">--:--</span>
+                                    <i class="fas fa-arrow-right text-[8px]"></i>
+                                    <span th:text="${att.checkOutTime != null ? #temporals.format(att.checkOutTime, 'HH:mm') : '--:--'}">--:--</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6">
+                                <span th:if="${att.status.contains('HADIR')}" class="text-[10px] font-black bg-green-50 text-green-600 px-3 py-1 rounded-full uppercase">Hadir</span>
+                                <span th:if="${att.status.contains('TERLAMBAT')}" class="text-[10px] font-black bg-amber-50 text-amber-600 px-3 py-1 rounded-full uppercase">Terlambat</span>
+                                <span th:if="${att.status.contains('DILUAR_AREA')}" class="text-[10px] font-black bg-rose-50 text-rose-600 px-3 py-1 rounded-full uppercase">Diluar Area</span>
+                            </td>
+                            <td class="px-8 py-6">
+                                <div th:if="${att.isWithinGeo}" class="flex items-center text-green-500">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    <span class="text-xs font-bold">Valid</span>
+                                </div>
+                                <div th:unless="${att.isWithinGeo}" class="flex items-center text-rose-500">
+                                    <i class="fas fa-times-circle mr-2"></i>
+                                    <span class="text-xs font-bold">Invalid</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-6 text-right">
+                                <div class="text-xs font-bold text-gray-700" th:text="${att.checkInDetail}">Detail</div>
+                                <div class="text-[10px] text-gray-400" th:text="${att.status}">Status Full</div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(history)}">
+                            <td colspan="5" class="py-20 text-center">
+                                <div class="text-gray-200 text-6xl mb-4">
+                                    <i class="fas fa-file-invoice"></i>
+                                </div>
+                                <p class="text-gray-400 italic">Tidak ada data kehadiran yang ditemukan untuk kriteria ini.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

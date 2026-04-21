@@ -25,5 +25,16 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("start") LocalDateTime start, 
             @Param("end") LocalDateTime end);
             
+            
+    @Query("SELECT a FROM Attendance a JOIN a.employee e WHERE a.checkInTime BETWEEN :start AND :end " +
+           "AND (:search IS NULL OR :search = '' OR " +
+           "LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(e.nik) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<Attendance> findAllFiltered(
+            @Param("start") LocalDateTime start, 
+            @Param("end") LocalDateTime end, 
+            @Param("search") String search);
+
     List<Attendance> findByEmployeeIdOrderByCheckInTimeDesc(Long employeeId);
 }
