@@ -35,6 +35,8 @@
         .sidebar-collapsed .sidebar-text { display: none !important; }
         .sidebar-collapsed .sidebar-header-text { display: none !important; }
         .sidebar-collapsed .sidebar-submenu-arrow { display: none !important; }
+        /* Hide submenus specifically when collapsed to prevent overflow */
+        .sidebar-collapsed div[id^="submenu"] { display: none !important; }
         .main-expanded { margin-left: 80px !important; }
         .transition-sidebar { transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
@@ -60,20 +62,23 @@
         <nav class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
             <div th:each="wrapper : ${sidebarMenus}" class="relative group">
                 <!-- If has children: Dropdown -->
-                <div th:if="${not #lists.isEmpty(wrapper.children)}" class="relative">
+                <div th:if="${not #lists.isEmpty(wrapper.children)}" 
+                     th:with="isActive=${#lists.contains(wrapper.children.![url], currentUri) || #lists.contains(wrapper.children.![url + '/'], currentUri)}" 
+                     class="relative">
                     <button th:data-target-id="'submenu' + ${wrapper.menu.id}" 
                             onclick="toggleSubmenu(this.getAttribute('data-target-id'), this)"
-                            class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                            th:class="'w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all ' + (${isActive} ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600')">
                         <span class="flex items-center overflow-hidden">
                             <i th:class="${wrapper.menu.icon != null ? wrapper.menu.icon : 'fas fa-circle text-[6px]'} + ' w-6 shrink-0'"></i>
                             <span th:text="${wrapper.menu.title}" class="sidebar-text whitespace-nowrap">Title</span>
                         </span>
-                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-300 sidebar-submenu-arrow" th:id="'arrow' + ${wrapper.menu.id}"></i>
+                        <i th:class="'fas fa-chevron-down text-[10px] transition-transform duration-300 sidebar-submenu-arrow ' + (${isActive} ? 'rotate-180' : '')" th:id="'arrow' + ${wrapper.menu.id}"></i>
                     </button>
-                    <div th:id="'submenu' + ${wrapper.menu.id}" class="pl-10 mt-1 space-y-1 hidden">
+                    <div th:id="'submenu' + ${wrapper.menu.id}" 
+                         th:class="'pl-10 mt-1 space-y-1 ' + (${isActive} ? '' : 'hidden')">
                         <a th:each="child : ${wrapper.children}" 
                            th:href="@{${child.url}}" 
-                           class="block py-2 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                           th:class="'block py-2 text-xs font-medium transition-colors ' + (${child.url == currentUri || child.url + '/' == currentUri} ? 'text-blue-600 font-black' : 'text-gray-500 hover:text-blue-600')"
                            th:text="${child.title}">Child</a>
                     </div>
                 </div>
@@ -188,6 +193,14 @@
     </main>
 
     <!-- Global Scripts -->
+    <!-- Success Sound -->
+    <audio id="successSound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" type="audio/mpeg">
+    </audio>
+    <!-- Error Sound -->
+    <audio id="errorSound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <script th:inline="javascript">
         // Global Toast Configuration
@@ -231,6 +244,8 @@
         const errorMessage = document.getElementById('errorMsg').value;
 
         if (successMessage) {
+            const sound = document.getElementById('successSound');
+            if (sound) sound.play().catch(e => console.log('Audio play failed:', e));
             Toast.fire({ 
                 icon: 'success', 
                 title: successMessage,
@@ -240,6 +255,8 @@
             });
         }
         if (errorMessage) {
+            const sound = document.getElementById('errorSound');
+            if (sound) sound.play().catch(e => console.log('Audio play failed:', e));
             Toast.fire({ 
                 icon: 'error', 
                 title: 'Gagal', 
@@ -251,10 +268,26 @@
         }
 
         function toggleSubmenu(id, btn) {
+            const sidebar = document.getElementById('mainSidebar');
+            // If sidebar is collapsed, expand it first
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                toggleCollapse();
+            }
+            
             const el = document.getElementById(id);
             const arrow = document.getElementById('arrow' + id.replace('submenu', ''));
-            el.classList.toggle('hidden');
+            const isHidden = el.classList.toggle('hidden');
             if (arrow) arrow.classList.toggle('rotate-180');
+
+            // Persist the state
+            const openSubmenus = JSON.parse(localStorage.getItem('openSubmenus') || '[]');
+            if (!isHidden) {
+                if (!openSubmenus.includes(id)) openSubmenus.push(id);
+            } else {
+                const index = openSubmenus.indexOf(id);
+                if (index > -1) openSubmenus.splice(index, 1);
+            }
+            localStorage.setItem('openSubmenus', JSON.stringify(openSubmenus));
         }
 
         function toggleSidebar() {
@@ -411,6 +444,31 @@
             // Restore Sidebar State
             if (localStorage.getItem('sidebarCollapsed') === 'true') {
                 toggleCollapse();
+            }
+
+            // Restore Open Submenus from LocalStorage
+            const openSubmenus = JSON.parse(localStorage.getItem('openSubmenus') || '[]');
+            openSubmenus.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('hidden');
+                    const menuId = id.replace('submenu', '');
+                    const arrow = document.getElementById('arrow' + menuId);
+                    if (arrow) arrow.classList.add('rotate-180');
+                    const parentBtn = document.querySelector(`[data-target-id="${id}"]`);
+                    if (parentBtn) parentBtn.classList.add('bg-blue-50', 'text-blue-600');
+                }
+            });
+
+            // Check for login success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('login') === 'success') {
+                const sound = document.getElementById('successSound');
+                if (sound) sound.play().catch(e => console.log('Audio play failed:', e));
+                
+                // Clean URL
+                const nextURL = window.location.href.split('?')[0];
+                window.history.replaceState({}, document.title, nextURL);
             }
 
             const path = window.location.pathname;

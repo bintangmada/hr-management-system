@@ -67,6 +67,7 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, org.springframework.web.servlet.ModelAndView modelAndView) throws Exception {
         if (modelAndView != null && request.getAttribute("role") != null) {
+            modelAndView.addObject("currentUri", request.getRequestURI());
             String role = (String) request.getAttribute("role");
             modelAndView.addObject("role", role);
             modelAndView.addObject("nik", request.getAttribute("nik"));
