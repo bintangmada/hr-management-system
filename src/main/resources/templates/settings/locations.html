@@ -2,19 +2,47 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body th:fragment="area_konten">
     <div>
-        <div class="mb-10 flex justify-between items-center">
+        <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
             <div>
-                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">Multi-Lokasi Absensi</h2>
+                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">Multi-Lokasi 
+                    <span class="text-blue-600">Absensi</span>
+                </h2>
                 <p class="text-gray-500">Kelola berbagai area geofencing untuk lokasi kerja yang berbeda.</p>
             </div>
-            <button onclick="openAddModal()" 
-                    class="bg-blue-600 text-white px-8 py-4 rounded-3xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
-                + Tambah Lokasi Baru
-            </button>
+            <div class="flex items-center space-x-4">
+                <!-- Toggle View -->
+                <div class="bg-gray-100 p-1 rounded-2xl flex space-x-1 border border-gray-200">
+                    <button onclick="switchView('grid')" id="viewGridBtn" 
+                            class="px-4 py-2 rounded-xl text-xs font-black transition-all bg-white text-blue-600 shadow-sm border border-gray-100">
+                        <i class="fas fa-th-large mr-2"></i> LIST
+                    </button>
+                    <button onclick="switchView('map')" id="viewMapBtn" 
+                            class="px-4 py-2 rounded-xl text-xs font-black transition-all text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-map-marked-alt mr-2"></i> MAP
+                    </button>
+                </div>
+
+                <button onclick="openAddModal()" 
+                        class="bg-blue-600 text-white px-8 py-4 rounded-3xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                    + Tambah Lokasi
+                </button>
+            </div>
+        </div>
+
+        <!-- Global Map Container (Hidden by default) -->
+        <div id="globalMapContainer" class="hidden h-[600px] w-full bg-white rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden mb-8">
+            <div id="globalMap" class="w-full h-full z-0"></div>
+            <div class="absolute top-6 left-6 z-[400] bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-white/50 shadow-lg">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Coverage</p>
+                <div class="flex items-center">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse mr-2"></div>
+                    <span class="text-xs font-black text-gray-800" th:text="${#lists.size(locations)} + ' Lokasi Aktif'">0 Lokasi</span>
+                </div>
+            </div>
         </div>
 
         <!-- Grid Lokasi -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="locationsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div th:each="loc : ${locations}" 
                  class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all group relative overflow-hidden">
                 <div class="flex justify-between items-start mb-6">
@@ -47,6 +75,8 @@
                                 th:data-id="${loc.id}" th:data-name="${loc.name}" th:data-polygon="${loc.polygonJson}" 
                                 th:data-radius="${loc.radius}" th:data-desc="${loc.description}"
                                 onclick="editLocation(this)">Edit</button>
+                        <button type="button" class="text-indigo-600 font-bold text-sm hover:underline"
+                                th:data-id="${loc.id}" onclick="focusOnMap(this.getAttribute('data-id'))">Buka Peta</button>
                     </div>
                     <form th:id="'deleteLoc' + ${loc.id}" th:action="@{/settings/attendance-locations/delete/{id}(id=${loc.id})}" method="post" class="inline">
                         <button type="button" class="text-red-500 font-bold text-sm hover:underline"
@@ -122,8 +152,127 @@
     <script th:inline="javascript">
         var map, drawnItems, drawControl, userMarker;
         var existingLayersGroup;
+        var globalMap, globalLayersGroup;
         /*[[${locations}]]*/
         var allLocations = [[${locations}]];
+
+        function switchView(mode) {
+            const grid = document.getElementById('locationsGrid');
+            const mapContainer = document.getElementById('globalMapContainer');
+            const gridBtn = document.getElementById('viewGridBtn');
+            const mapBtn = document.getElementById('viewMapBtn');
+
+            if (mode === 'map') {
+                grid.classList.add('hidden');
+                mapContainer.classList.remove('hidden');
+                
+                // Toggle Button Styles
+                mapBtn.className = "px-4 py-2 rounded-xl text-xs font-black transition-all bg-white text-blue-600 shadow-sm border border-gray-100";
+                gridBtn.className = "px-4 py-2 rounded-xl text-xs font-black transition-all text-gray-400 hover:text-gray-600";
+                
+                initGlobalMap();
+            } else {
+                mapContainer.classList.add('hidden');
+                grid.classList.remove('hidden');
+                
+                // Toggle Button Styles
+                gridBtn.className = "px-4 py-2 rounded-xl text-xs font-black transition-all bg-white text-blue-600 shadow-sm border border-gray-100";
+                mapBtn.className = "px-4 py-2 rounded-xl text-xs font-black transition-all text-gray-400 hover:text-gray-600";
+            }
+        }
+
+        function initGlobalMap() {
+            if (globalMap) {
+                setTimeout(() => globalMap.invalidateSize(), 100);
+                return;
+            }
+
+            globalMap = L.map('globalMap').setView([-6.200000, 106.816666], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(globalMap);
+            
+            globalLayersGroup = new L.FeatureGroup();
+            globalMap.addLayer(globalLayersGroup);
+            
+            const colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#3b82f6'];
+            let bounds = L.latLngBounds();
+            let hasPoints = false;
+
+            allLocations.forEach(function(loc, idx) {
+                if (loc.polygonJson && loc.polygonJson !== '[]') {
+                    try {
+                        const coords = JSON.parse(loc.polygonJson);
+                        const color = colors[idx % colors.length];
+                        const poly = L.polygon(coords, {
+                            color: color,
+                            weight: 3,
+                            fillColor: color,
+                            fillOpacity: 0.2
+                        }).addTo(globalLayersGroup);
+                        
+                        poly.locationId = loc.id; // Store ID for focus logic
+                        
+                        // Tooltip & Popup
+                        poly.bindTooltip(loc.name, { permanent: true, direction: 'center', className: 'map-label' });
+                        
+                        const popupContent = `
+                            <div class="p-4 min-w-[200px]">
+                                <h5 class="font-black text-gray-900 mb-1">${loc.name}</h5>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-4">Radius: ${loc.radius}m</p>
+                                <div class="flex space-x-2 border-t pt-3">
+                                    <button onclick="editLocationById(${loc.id})" class="text-[10px] font-black text-blue-600 hover:underline">EDIT</button>
+                                    <button onclick="detailLocationById(${loc.id})" class="text-[10px] font-black text-gray-400 hover:underline">DETAIL</button>
+                                </div>
+                            </div>
+                        `;
+                        poly.bindPopup(popupContent);
+                        
+                        bounds.extend(poly.getBounds());
+                        hasPoints = true;
+                    } catch(e) {}
+                }
+            });
+
+            if (hasPoints) {
+                globalMap.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        function focusOnMap(id) {
+            // Switch to map mode first
+            switchView('map');
+            
+            // Wait for map to be ready if it was just initialized
+            setTimeout(() => {
+                if (!globalMap || !globalLayersGroup) return;
+                
+                let targetLayer = null;
+                globalLayersGroup.eachLayer(layer => {
+                    if (layer.locationId == id) targetLayer = layer;
+                });
+                
+                if (targetLayer) {
+                    globalMap.fitBounds(targetLayer.getBounds(), { padding: [100, 100] });
+                    targetLayer.openPopup();
+                }
+            }, 300);
+        }
+
+        // Action bridges for Global Map
+        function editLocationById(id) {
+            const loc = allLocations.find(l => l.id == id);
+            if (loc) openEditModal(loc.id, loc.name, loc.polygonJson, loc.radius, loc.description);
+        }
+
+        function detailLocationById(id) {
+            const loc = allLocations.find(l => l.id == id);
+            if (loc) {
+                openEditModal(loc.id, loc.name, loc.polygonJson, loc.radius, loc.description);
+                document.getElementById('modalTitle').innerText = "Detail Lokasi";
+                document.getElementById('btnSave').classList.add('hidden');
+                document.querySelectorAll('#locForm input, #locForm textarea').forEach(el => el.disabled = true);
+                if (drawControl) try { map.removeControl(drawControl); } catch(e) {}
+            }
+        }
 
         function initMap() {
             if (map) return;

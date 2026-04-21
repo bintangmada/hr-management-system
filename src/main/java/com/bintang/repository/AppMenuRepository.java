@@ -7,4 +7,5 @@ import java.util.List;
 public interface AppMenuRepository extends JpaRepository<AppMenu, Long> {
     List<AppMenu> findByIsActiveOrderBySortOrderAsc(Boolean isActive);
     List<AppMenu> findByParentIdOrderBySortOrderAsc(Long parentId);
+    AppMenu findByUrl(String url);
 }

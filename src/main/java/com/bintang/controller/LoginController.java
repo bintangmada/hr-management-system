@@ -61,7 +61,7 @@ public class LoginController {
             cookie.setMaxAge(60 * 60 * 10); // 10 hours
             response.addCookie(cookie);
 
-            return "redirect:/attendance?login=success";
+            return "redirect:/dashboard?login=success";
         }
 
         model.addAttribute("error", "NIK atau Password salah");

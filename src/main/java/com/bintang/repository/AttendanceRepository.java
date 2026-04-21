@@ -37,4 +37,17 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("search") String search);
 
     List<Attendance> findByEmployeeIdOrderByCheckInTimeDesc(Long employeeId);
+    
+    long countByCheckInTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT COUNT(DISTINCT a.employeeId) FROM Attendance a WHERE a.checkInTime BETWEEN :start AND :end")
+    long countUniquePresent(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    
+    @Query("SELECT COUNT(DISTINCT a.employeeId) FROM Attendance a WHERE a.isLate = true AND a.checkInTime BETWEEN :start AND :end")
+    long countUniqueLate(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    
+    long countByCheckInTimeBetweenAndIsLate(LocalDateTime start, LocalDateTime end, Boolean isLate);
+
+    @Query("SELECT a FROM Attendance a ORDER BY a.checkInTime DESC")
+    List<Attendance> findTop5Recent(org.springframework.data.domain.Pageable pageable);
 }
