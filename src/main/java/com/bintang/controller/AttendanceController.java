@@ -5,6 +5,7 @@ import com.bintang.entity.Employee;
 import com.bintang.repository.AttendanceLocationRepository;
 import com.bintang.repository.EmployeeRepository;
 import com.bintang.service.AttendanceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -29,6 +30,12 @@ public class AttendanceController {
     @Autowired
     private AttendanceLocationRepository locationRepository;
 
+    @Autowired
+    private com.bintang.service.SettingService settingService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @GetMapping
     public String attendancePage(HttpServletRequest request, Model model) {
         Long employeeId = (Long) request.getAttribute("employeeId");
@@ -38,7 +45,14 @@ public class AttendanceController {
         
         model.addAttribute("employee", employee);
         model.addAttribute("todayAttendance", todayAttendance);
-        model.addAttribute("locations", locationRepository.findAll());
+        model.addAttribute("globalMinCheckIn", settingService.getSettingValue("MIN_CHECKIN_TIME", "07:00"));
+        model.addAttribute("globalMinCheckOut", settingService.getSettingValue("MIN_CHECKOUT_TIME", "16:00"));
+        model.addAttribute("globalTargetStart", settingService.getSettingValue("TARGET_START_TIME", "09:00"));
+        try {
+            model.addAttribute("locationsJson", objectMapper.writeValueAsString(locationRepository.findAll()));
+        } catch (Exception e) {
+            model.addAttribute("locationsJson", "[]");
+        }
         model.addAttribute("content", "attendance/index");
         return "layout";
     }

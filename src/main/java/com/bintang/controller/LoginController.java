@@ -24,7 +24,8 @@ public class LoginController {
     private JwtUtil jwtUtil;
 
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(jakarta.servlet.http.HttpSession session) {
+        session.setAttribute("SESSION_INIT", true); // Ensure session cookie is created
         return "login";
     }
 
@@ -32,8 +33,21 @@ public class LoginController {
     public String processLogin(
             @RequestParam String nik,
             @RequestParam String password,
+            @RequestParam String captcha,
+            jakarta.servlet.http.HttpSession session,
             HttpServletResponse response,
             Model model) {
+
+        // Captcha Validation
+        String sessionCaptcha = (String) session.getAttribute("CAPTCHA_CODE");
+        
+        // Log for verification
+        System.out.println("Login Attempt - Session ID: " + session.getId() + " | Session Captcha: " + sessionCaptcha + " | Submitted: " + captcha);
+
+        if (sessionCaptcha == null || !sessionCaptcha.equalsIgnoreCase(captcha)) {
+            model.addAttribute("error", "Kode CAPTCHA tidak sesuai");
+            return "login";
+        }
 
         Optional<Employee> empOpt = employeeRepository.findByNik(nik);
 

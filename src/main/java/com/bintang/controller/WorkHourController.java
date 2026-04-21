@@ -28,6 +28,7 @@ public class WorkHourController {
     public String workHourSettings(Model model) {
         model.addAttribute("globalMinCheckIn", settingService.getSettingValue("MIN_CHECKIN_TIME", "07:00"));
         model.addAttribute("globalMinCheckOut", settingService.getSettingValue("MIN_CHECKOUT_TIME", "16:00"));
+        model.addAttribute("globalTargetStart", settingService.getSettingValue("TARGET_START_TIME", "09:00"));
         model.addAttribute("locations", locationRepository.findAll());
         model.addAttribute("content", "settings/work-hours");
         return "layout";
@@ -37,13 +38,15 @@ public class WorkHourController {
     public String saveGlobalWorkHours(
             @RequestParam String minCheckIn,
             @RequestParam String minCheckOut,
+            @RequestParam String targetStart,
             HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
         
         settingService.updateSetting("MIN_CHECKIN_TIME", minCheckIn, "Jam minimal check-in standar perusahaan");
         settingService.updateSetting("MIN_CHECKOUT_TIME", minCheckOut, "Jam minimal check-out standar perusahaan");
+        settingService.updateSetting("TARGET_START_TIME", targetStart, "Jam target masuk kantor (untuk hitung terlambat)");
         
-        auditService.logWithContext(request, "UPDATE_SETTING_GLOBAL", "Setting", null, "Mengubah jam kerja global: " + minCheckIn + " - " + minCheckOut);
+        auditService.logWithContext(request, "UPDATE_SETTING_GLOBAL", "Setting", null, "Mengubah jam kerja global: " + minCheckIn + " - " + minCheckOut + " (Target: " + targetStart + ")");
         redirectAttributes.addFlashAttribute("successMessage", "Jam kerja global berhasil diperbarui!");
         
         return "redirect:/settings/work-hours";
@@ -54,16 +57,18 @@ public class WorkHourController {
             @RequestParam Long locationId,
             @RequestParam String minCheckIn,
             @RequestParam String minCheckOut,
+            @RequestParam String targetStart,
             HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
         
         AttendanceLocation loc = locationRepository.findById(locationId).orElseThrow();
         loc.setMinCheckInTime(minCheckIn);
         loc.setMinCheckOutTime(minCheckOut);
+        loc.setTargetStartTime(targetStart);
         locationRepository.save(loc);
         
         auditService.logWithContext(request, "UPDATE_SETTING_LOCATION", "AttendanceLocation", locationId, 
-                "Mengubah jam kerja lokasi " + loc.getName() + ": " + minCheckIn + " - " + minCheckOut);
+                "Mengubah jam kerja lokasi " + loc.getName() + ": " + minCheckIn + " - " + minCheckOut + " (Target: " + targetStart + ")");
         
         redirectAttributes.addFlashAttribute("successMessage", "Jam kerja lokasi " + loc.getName() + " berhasil diperbarui!");
         

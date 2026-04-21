@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,11 +35,23 @@ public class Employee {
     private String phoneNumber;
     private LocalDate hireDate;
     
-    private String jobId; // Manual relationship
+    @ManyToOne
+    @JoinColumn(name = "jobId", insertable = false, updatable = false)
+    private Job job;
+
+    @Column(name = "jobId")
+    private String jobId;
+
     private Double salary;
     private Double commissionPct;
     private Long managerId; // Manual relationship to self
-    private Long departmentId; // Manual relationship
+
+    @ManyToOne
+    @JoinColumn(name = "departmentId", insertable = false, updatable = false)
+    private Department department;
+
+    @Column(name = "departmentId")
+    private Long departmentId;
     
     private String password;
     private String role; // ADMIN or EMPLOYEE

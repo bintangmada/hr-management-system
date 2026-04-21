@@ -28,4 +28,7 @@ public class Attendance {
     private Double longitude;
     private Boolean isWithinGeo;
     private Boolean isLate;
+    private String checkInDetail;
+    private String checkOutDetail;
+    private Boolean isEarlyLeave;
 }

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 
 @Service
 public class AttendanceService {
@@ -104,11 +105,35 @@ public class AttendanceService {
                                     ? currentLoc.getMinCheckInTime() 
                                     : settingService.getSettingValue("MIN_CHECKIN_TIME", "07:00");
                 
+                // 2. Determine Target/Office Start Time (Location Specific OR Global)
+                String targetTimeStr = (currentLoc != null && currentLoc.getTargetStartTime() != null && !currentLoc.getTargetStartTime().isBlank())
+                                    ? currentLoc.getTargetStartTime()
+                                    : settingService.getSettingValue("TARGET_START_TIME", "09:00");
+
                 LocalTime minTime = LocalTime.parse(minTimeStr);
-                if (now.toLocalTime().isBefore(minTime)) {
+                LocalTime targetTime = LocalTime.parse(targetTimeStr);
+                LocalTime checkInTime = now.toLocalTime();
+
+                // Calculate Detail
+                long diffMinutes = Duration.between(targetTime, checkInTime).toMinutes();
+                String detail = "";
+                if (diffMinutes > 0) {
+                    detail = "Terlambat " + diffMinutes + " menit";
+                    attendance.setIsLate(true);
+                } else if (diffMinutes < 0) {
+                    detail = Math.abs(diffMinutes) + " menit lebih awal";
+                    attendance.setIsLate(false);
+                } else {
+                    detail = "Tepat Waktu";
+                    attendance.setIsLate(false);
+                }
+                attendance.setCheckInDetail(detail);
+                attendanceRepository.save(attendance);
+
+                if (checkInTime.isBefore(minTime)) {
                     String locNameMsg = (currentLoc != null) ? " di " + currentLoc.getName() : "";
                     notificationService.send(emp.getNik(), "Peringatan Check-in Awal", 
-                        "Anda melakukan check-in pada " + now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
+                        "Anda melakukan check-in pada " + checkInTime.format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
                         ". Jam minimal check-in yang diizinkan adalah " + minTimeStr + ".", 
                         "/attendance");
                 }
@@ -144,10 +169,25 @@ public class AttendanceService {
                 
                 LocalTime minTime = LocalTime.parse(minTimeStr);
                 LocalDateTime now = LocalDateTime.now();
-                if (now.toLocalTime().isBefore(minTime)) {
+                LocalTime checkOutTime = now.toLocalTime();
+
+                // Calculate Detail (relative to min check-out)
+                long diffMinutes = Duration.between(minTime, checkOutTime).toMinutes();
+                String detail = "";
+                if (diffMinutes >= 0) {
+                    detail = "Sudah sesuai jam pulang";
+                    attendance.setIsEarlyLeave(false);
+                } else {
+                    detail = Math.abs(diffMinutes) + " menit lebih awal";
+                    attendance.setIsEarlyLeave(true);
+                }
+                attendance.setCheckOutDetail(detail);
+                attendanceRepository.save(attendance);
+
+                if (checkOutTime.isBefore(minTime)) {
                     String locNameMsg = (currentLoc != null) ? " di " + currentLoc.getName() : "";
                     notificationService.send(emp.getNik(), "Peringatan Check-out Awal", 
-                        "Anda melakukan check-out pada " + now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
+                        "Anda melakukan check-out pada " + checkOutTime.format(DateTimeFormatter.ofPattern("HH:mm")) + locNameMsg +
                         ". Jam minimal pulang yang diizinkan adalah " + minTimeStr + ".", 
                         "/attendance");
                 }

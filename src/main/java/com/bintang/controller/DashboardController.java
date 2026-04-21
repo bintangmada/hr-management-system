@@ -48,11 +48,22 @@ public class DashboardController {
         // Attendance Today
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-        // We'll just count all check-ins today
-        long presentToday = attendanceRepository.findAll().stream()
+        
+        List<Attendance> todayAttendance = attendanceRepository.findAll().stream()
             .filter(a -> a.getCheckInTime().isAfter(startOfDay) && a.getCheckInTime().isBefore(endOfDay))
+            .toList();
+
+        model.addAttribute("presentToday", todayAttendance.size());
+        model.addAttribute("lateToday", todayAttendance.stream()
+            .filter(a -> a.getIsLate() != null && a.getIsLate())
+            .count());
+
+        // On Leave Today
+        long onLeaveToday = leaveRequestRepository.findAll().stream()
+            .filter(l -> "APPROVED".equals(l.getStatus()) && l.getStartDate() != null && l.getEndDate() != null)
+            .filter(l -> !LocalDate.now().isBefore(l.getStartDate()) && !LocalDate.now().isAfter(l.getEndDate()))
             .count();
-        model.addAttribute("presentToday", presentToday);
+        model.addAttribute("onLeaveToday", onLeaveToday);
 
         // Recent Generic Activity (Last 5 attendances across company)
         List<Attendance> recentActivity = attendanceRepository.findAll().stream()

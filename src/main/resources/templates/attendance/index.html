@@ -38,7 +38,7 @@
                         
                         <div class="mb-6">
                             <div id="miniMap" class="h-48 rounded-3xl border border-gray-100 shadow-inner"
-                                 th:data-locations="${locations != null ? #objects.nullSafe(locations, {}) : '[]'}"></div>
+                                 th:data-locations="${locationsJson}"></div>
                             <div id="locationStatus" class="mt-3 text-center text-xs text-gray-400 italic">Mencari GPS...</div>
                         </div>
 
@@ -57,11 +57,15 @@
                             <div>
                                 <div class="text-[10px] text-gray-400 font-bold uppercase">Jam Masuk</div>
                                 <div class="text-xl font-black text-gray-900" th:text="${#temporals.format(todayAttendance.checkInTime, 'HH:mm')}">08:00</div>
+                                <div class="text-[9px] font-black uppercase mt-1" 
+                                     th:classappend="${todayAttendance.isLate ? 'text-red-500' : 'text-green-500'}"
+                                     th:text="${todayAttendance.checkInDetail}">--</div>
                             </div>
                             <div class="w-px h-8 bg-gray-200"></div>
                             <div>
                                 <div class="text-[10px] text-gray-400 font-bold uppercase">Jam Pulang</div>
                                 <div class="text-xl font-black text-gray-300 italic">--:--</div>
+                                <div class="text-[9px] text-gray-300 font-bold uppercase mt-1">Belum Absen</div>
                             </div>
                         </div>
                     </div>
@@ -73,7 +77,7 @@
 
                         <div class="mb-6">
                             <div id="miniMap" class="h-48 rounded-3xl border border-gray-100 shadow-inner"
-                                 th:data-locations="${locations != null ? #objects.nullSafe(locations, {}) : '[]'}"></div>
+                                 th:data-locations="${locationsJson}"></div>
                             <div id="locationStatus" class="mt-3 text-center text-xs text-gray-400 italic">Memantau Lokasi...</div>
                         </div>
 
@@ -97,10 +101,16 @@
                             <div class="text-center">
                                 <div class="text-[10px] text-gray-400 font-bold uppercase mb-1">Masuk</div>
                                 <div class="text-lg font-bold text-gray-900" th:text="${#temporals.format(todayAttendance.checkInTime, 'HH:mm')}">08:00</div>
+                                <div class="text-[9px] font-black uppercase mt-1" 
+                                     th:classappend="${todayAttendance.isLate ? 'text-red-500' : 'text-green-500'}"
+                                     th:text="${todayAttendance.checkInDetail}">--</div>
                             </div>
                             <div class="text-center">
                                 <div class="text-[10px] text-gray-400 font-bold uppercase mb-1">Pulang</div>
                                 <div class="text-lg font-bold text-gray-900" th:text="${#temporals.format(todayAttendance.checkOutTime, 'HH:mm')}">17:00</div>
+                                <div class="text-[9px] font-black uppercase mt-1" 
+                                     th:classappend="${todayAttendance.isEarlyLeave == true ? 'text-amber-500' : 'text-green-500'}"
+                                     th:text="${todayAttendance.checkOutDetail}">--</div>
                             </div>
                         </div>
                     </div>
@@ -119,7 +129,12 @@
     <!-- Leaflet JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
+    <script th:inline="javascript">
+        // Inject Global Settings for Fallback
+        const GLOBAL_MIN_IN = /*[[${globalMinCheckIn}]]*/ '07:00';
+        const GLOBAL_MIN_OUT = /*[[${globalMinCheckOut}]]*/ '16:00';
+        const GLOBAL_TARGET = /*[[${globalTargetStart}]]*/ '09:00';
+
         // Initialize Map
         const mapContainer = document.getElementById('miniMap');
         const map = L.map('miniMap', { zoomControl: false, attributionControl: false }).setView([-6.200000, 106.816666], 15);
@@ -146,7 +161,12 @@
                         if (loc.polygonJson && loc.polygonJson !== '[]') {
                             try {
                                 var coords = JSON.parse(loc.polygonJson);
-                                L.polygon(coords, {color: '#3b82f6', weight: 2, fillOpacity: 0.1, dashArray: '5, 5'}).addTo(map);
+                                L.polygon(coords, {
+                                    color: '#2563eb', 
+                                    weight: 4, 
+                                    fillColor: '#3b82f6',
+                                    fillOpacity: 0.2
+                                }).addTo(map).bindPopup("<b>Area Absen: " + loc.name + "</b>");
                             } catch(e) { console.error("Error drawing polygon", e); }
                         }
                         // Also show a circle for the radius if available
@@ -251,14 +271,109 @@
             handleGeoError({ code: 0, message: "Geolocation not supported" });
         }
 
-        // Form Submission Handling
+        // Form Submission Handling with Warnings
         if (btnSubmit) {
             btnSubmit.addEventListener('click', function() {
-                this.classList.add('opacity-50', 'cursor-not-allowed');
-                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
-                const form = document.getElementById('attendanceForm');
-                if (form) form.submit();
+                const now = new Date();
+                const currentTimeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+                
+                // Determine current location's rules
+                let minTime = null;
+                let targetTime = null;
+                let ruleType = "Check-in";
+                
+                const isCheckOut = document.querySelector('input[name="attendanceId"]') !== null;
+                
+                // Set Global Fallbacks
+                minTime = isCheckOut ? GLOBAL_MIN_OUT : GLOBAL_MIN_IN;
+                targetTime = GLOBAL_TARGET;
+                ruleType = isCheckOut ? "Pulang" : "Check-in";
+                
+                const locationsData = mapContainer.getAttribute('data-locations');
+                if (locationsData && locationsData !== '[]') {
+                    const locs = typeof locationsData === 'string' ? JSON.parse(locationsData) : locationsData;
+                    const userLatLng = userMarker ? userMarker.getLatLng() : null;
+                    
+                    if (userLatLng) {
+                        const matchedLoc = locs.find(loc => {
+                            if (!loc.polygonJson || loc.polygonJson === '[]') return false;
+                            try {
+                                const poly = JSON.parse(loc.polygonJson);
+                                return isPointInPolygon(userLatLng.lat, userLatLng.lng, poly);
+                            } catch(e) { return false; }
+                        });
+                        
+                        if (matchedLoc) {
+                            minTime = isCheckOut ? matchedLoc.minCheckOutTime : matchedLoc.minCheckInTime;
+                            targetTime = matchedLoc.targetStartTime;
+                        }
+                    }
+                }
+
+                if (minTime && currentTimeStr < minTime) {
+                    if (isCheckOut) {
+                        // STRICT BLOCK for Check-out
+                        Swal.fire({
+                            title: 'Belum Bisa Check-out',
+                            text: `Mohon maaf, Anda belum diperbolehkan pulang. Jam minimal pulang untuk lokasi ini adalah ${minTime}.`,
+                            icon: 'error',
+                            confirmButtonText: 'Sesuai Arahan',
+                            confirmButtonColor: '#2563eb',
+                            customClass: { popup: 'rounded-[1.5rem]' }
+                        });
+                        return; // Stop here
+                    } else {
+                        // Warning only for Check-in (as before)
+                        Swal.fire({
+                            title: 'Peringatan Absensi Awal',
+                            text: `Anda yakin ingin absen sekarang? Jam minimal ${ruleType} yang diizinkan adalah ${minTime}. Absensi Anda akan dicatat sebagai "Terlalu Awal".`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Absen Sekarang',
+                            cancelButtonText: 'Batal',
+                            confirmButtonColor: '#2563eb',
+                            customClass: { popup: 'rounded-[1.5rem]' }
+                        }).then((result) => {
+                            if (result.isConfirmed) submitForm();
+                        });
+                    }
+                } else if (!isCheckOut && targetTime && currentTimeStr > targetTime) {
+                    Swal.fire({
+                        title: 'Peringatan Keterlambatan',
+                        text: `Jam target masuk kantor adalah ${targetTime}. Anda melakukan check-in pada jam ${currentTimeStr}. Absensi Anda akan dicatat sebagai "Terlambat".`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Saya Terlambat',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#ef4444',
+                        customClass: { popup: 'rounded-[1.5rem]' }
+                    }).then((result) => {
+                        if (result.isConfirmed) submitForm();
+                    });
+                } else {
+                    submitForm();
+                }
             });
+        }
+
+        function submitForm() {
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+            const form = document.querySelector('form');
+            if (form) form.submit();
+        }
+
+        function isPointInPolygon(lat, lng, poly) {
+            let isInside = false;
+            let n = poly.length;
+            for (let i = 0, j = n - 1; i < n; j = i++) {
+                if (((poly[i][0] > lat) !== (poly[j][0] > lat)) &&
+                    (lng < (poly[j][1] - poly[i][1]) * (lat - poly[i][0]) / (poly[j][0] - poly[i][0]) + poly[i][1])) {
+                    isInside = !isInside;
+                }
+            }
+            return isInside;
         }
 
         // Fix for white map - ensure container size is ready
