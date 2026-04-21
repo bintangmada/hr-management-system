@@ -13,4 +13,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     java.util.List<Employee> findByManagerId(Long managerId);
     
     java.util.List<Employee> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrNikContainingIgnoreCase(String firstName, String lastName, String nik);
+
+    @org.springframework.data.jpa.repository.Query("SELECT d.name, COUNT(e) FROM Employee e JOIN e.department d GROUP BY d.name")
+    java.util.List<Object[]> countEmployeesByDepartment();
 }
