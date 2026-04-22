@@ -76,7 +76,7 @@
             </button>
         </div>
         
-        <nav class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
+        <nav id="sidebarNav" class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
             <div th:each="wrapper : ${sidebarMenus}" class="relative group">
                 <div th:if="${not #lists.isEmpty(wrapper.children)}" 
                      th:with="isActive=${#lists.contains(wrapper.children.![url], currentUri) || #lists.contains(wrapper.children.![url], (currentUri != null && currentUri.endsWith('/') ? currentUri.substring(0, currentUri.length() - 1) : currentUri + '/'))}" 
@@ -477,6 +477,20 @@
                     }
                 }
             });
+
+            // Restore Sidebar Scroll Position
+            const sidebarNav = document.getElementById('sidebarNav');
+            if (sidebarNav) {
+                const savedScroll = localStorage.getItem('sidebarScrollTop');
+                if (savedScroll) {
+                    sidebarNav.scrollTop = parseInt(savedScroll, 10);
+                }
+                
+                // Save scroll position when it changes
+                sidebarNav.addEventListener('scroll', () => {
+                    localStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
+                });
+            }
         }
 
         // Run state restoration as soon as DOM is ready to prevent flicker

@@ -66,7 +66,11 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, org.springframework.web.servlet.ModelAndView modelAndView) throws Exception {
-        if (modelAndView != null && request.getAttribute("role") != null) {
+        if (modelAndView == null || isRedirectView(modelAndView)) {
+            return;
+        }
+
+        if (request.getAttribute("role") != null) {
             modelAndView.addObject("currentUri", request.getRequestURI());
             String role = (String) request.getAttribute("role");
             modelAndView.addObject("role", role);
@@ -125,6 +129,14 @@ public class JwtInterceptor implements HandlerInterceptor {
                 modelAndView.addObject("employeeName", emp.getFirstName() + " " + emp.getLastName());
             });
         }
+    }
+
+    private boolean isRedirectView(org.springframework.web.servlet.ModelAndView modelAndView) {
+        String viewName = modelAndView.getViewName();
+        if (viewName != null && viewName.startsWith("redirect:")) {
+            return true;
+        }
+        return modelAndView.getView() instanceof org.springframework.web.servlet.view.RedirectView;
     }
 
     // Inner class for hierarchy
